@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GO On AGRO — Biblioteca de Prompts v5</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Mulish:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f3ee;--s0:#fff;--s1:#f2efe9;--s2:#ebe8e0;--s3:#e0dbd0;
+  --ink:#1a1810;--ink2:#5a5648;--ink3:#9a9282;
+  --gold:#b8902a;--gold2:#c9a84c;--gold3:#e8c86a;--goldbg:#fdf8ec;--goldbr:rgba(200,168,76,.28);
+  --dark:#1a1810;--dark2:#2d2b22;
+  --green:#276626;--greenbg:#edf7ec;--greenbr:rgba(39,102,38,.22);
+  --red:#b02828;--redbg:#fceaea;
+  --amb:#9a5800;--ambbg:#fff3dc;
+  --bdr:#ddd8cc;--bdr2:#ccc5b5;
+  --r:10px;--r2:16px;--r3:22px;
+  --sh:0 1px 3px rgba(26,24,16,.07),0 4px 14px rgba(26,24,16,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Mulish',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.55}
+input,select,textarea,button{font-family:inherit}
+.app{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{width:248px;background:var(--dark);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:200}
+.main{margin-left:248px;flex:1;min-width:0;display:flex;flex-direction:column}
+.brand{padding:1.2rem 1rem .9rem;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand-logo{font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-size:1.28rem;color:var(--gold3);letter-spacing:-.01em;line-height:1.1}
+.brand-sub{font-size:.58rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-top:3px}
+.nav-sec{padding:.85rem .85rem .18rem;font-size:.57rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.22)}
+.nv{display:flex;align-items:center;gap:8px;margin:1px .4rem;padding:.5rem .75rem;border-radius:8px;font-size:.8rem;font-weight:600;color:rgba(255,255,255,.52);cursor:pointer;transition:all .13s;border:none;background:none;width:calc(100% - .8rem);text-align:left}
+.nv:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
+.nv.on{background:var(--gold2);color:var(--dark);font-weight:800}
+.nv .dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.18);flex-shrink:0}
+.nv.on .dot{background:rgba(26,24,16,.35)}
+.nvpill{margin-left:auto;font-size:.6rem;font-weight:800;padding:1px 6px;border-radius:99px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.38)}
+.nv.on .nvpill{background:rgba(26,24,16,.2);color:var(--dark)}
+.sprog{margin:.7rem .8rem .2rem;padding:.75rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px}
+.sprog-l{font-size:.58rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3)}
+.sprog-v{font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-size:1.2rem;color:var(--gold3);margin:2px 0 .5rem}
+.sbar{height:5px;background:rgba(255,255,255,.09);border-radius:99px;overflow:hidden}
+.sbar>i{display:block;height:100%;background:var(--gold2);border-radius:99px;transition:width .3s}
+.sfooter{margin-top:auto;padding:.9rem 1rem;border-top:1px solid rgba(255,255,255,.07);font-size:.66rem;color:rgba(255,255,255,.22);line-height:1.6}
+.sfooter b{color:var(--gold3)}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--s0);border-bottom:1px solid var(--bdr);padding:.85rem 1.6rem;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh);position:sticky;top:0;z-index:100}
+.topbar h1{font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-size:1.08rem;font-weight:400;color:var(--ink)}
+.topbar p{font-size:.7rem;color:var(--ink3);margin-top:1px}
+.topbar-r{display:flex;gap:6px;align-items:center}
+.wrap{padding:1.6rem;max-width:1180px;width:100%}
+
+/* ── BOTÕES ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:.52rem .95rem;border-radius:9px;font-size:.8rem;font-weight:700;cursor:pointer;border:1px solid transparent;transition:all .14s;white-space:nowrap;background:none;color:var(--ink)}
+.btn-dk{background:var(--dark);color:var(--gold3)}
+.btn-dk:hover{background:var(--dark2)}
+.btn-gd{background:var(--gold2);color:var(--dark)}
+.btn-gd:hover{background:var(--gold3)}
+.btn-ol{border-color:var(--bdr2);color:var(--ink2);background:var(--s0)}
+.btn-ol:hover{border-color:var(--gold2);color:var(--gold)}
+.btn-sm{padding:.4rem .75rem;font-size:.75rem}
+.btn-xs{padding:.28rem .6rem;font-size:.7rem;border-radius:7px}
+
+/* ── CARDS ── */
+.card{background:var(--s0);border:1px solid var(--bdr);border-radius:var(--r2);padding:1.2rem;margin-bottom:.9rem;box-shadow:var(--sh)}
+.ct{font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-size:.95rem;font-weight:400;color:var(--ink);display:flex;align-items:center;gap:7px}
+.ct::before{content:'';width:3px;height:15px;background:var(--gold2);border-radius:2px;flex-shrink:0}
+
+/* ── HERO ── */
+.hero{background:var(--dark);border-radius:var(--r3);padding:2rem 2.2rem;margin-bottom:1.1rem;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;right:-70px;top:-70px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(232,200,106,.13),transparent 68%)}
+.hero-tag{display:inline-block;font-size:.6rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--dark);background:var(--gold3);padding:.22rem .65rem;border-radius:99px;margin-bottom:.85rem}
+.hero h2{font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-size:2rem;font-weight:400;color:#fff;line-height:1.18;letter-spacing:-.01em;max-width:660px}
+.hero h2 em{font-style:normal;color:var(--gold3)}
+.hero p{font-size:.87rem;color:rgba(255,255,255,.55);margin-top:.75rem;max-width:610px;line-height:1.7;position:relative}
+.hero-stats{display:flex;gap:2.2rem;margin-top:1.5rem;flex-wrap:wrap;position:relative}
+.hstat b{display:block;font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-size:1.6rem;color:var(--gold3);line-height:1}
+.hstat span{font-size:.63rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.32);margin-top:5px;display:block}
+
+/* ── COMO FUNCIONA ── */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.1rem}
+.step{background:var(--s0);border:1px solid var(--bdr);border-radius:var(--r2);padding:1rem 1.05rem;box-shadow:var(--sh)}
+.step-n{width:24px;height:24px;border-radius:50%;background:var(--goldbg);border:1px solid var(--goldbr);color:var(--gold);font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:.55rem}
+.step h4{font-size:.83rem;font-weight:800;margin-bottom:.22rem}
+.step p{font-size:.75rem;color:var(--ink2);line-height:1.6}
+
+/* ── VARIÁVEIS ── */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:.7rem}
+.fld label{display:block;font-size:.63rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.fld label code{font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;text-transform:none;letter-spacing:0;color:var(--gold);font-size:.7rem;background:var(--goldbg);padding:0 4px;border-radius:4px}
+.fld input{width:100%;padding:.48rem .7rem;border:1px solid var(--bdr);border-radius:8px;background:var(--s0);font-size:.82rem;color:var(--ink);outline:none;transition:border-color .13s}
+.fld input:focus{border-color:var(--gold2)}
+.vcount{font-size:.72rem;font-weight:800;color:var(--gold);background:var(--goldbg);border:1px solid var(--goldbr);padding:.15rem .6rem;border-radius:99px}
+
+/* ── FILTROS ── */
+.toolbar{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}
+.search{flex:1;min-width:220px;position:relative}
+.search input{width:100%;padding:.58rem .9rem .58rem 2.1rem;border:1px solid var(--bdr);border-radius:10px;background:var(--s0);font-size:.84rem;color:var(--ink);outline:none;box-shadow:var(--sh)}
+.search input:focus{border-color:var(--gold2)}
+.search span{position:absolute;left:.8rem;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:.85rem}
+.tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.tab{padding:.38rem .8rem;border-radius:99px;border:1px solid var(--bdr);background:var(--s0);font-size:.75rem;font-weight:700;color:var(--ink2);cursor:pointer;transition:all .13s}
+.tab:hover{border-color:var(--gold2);color:var(--gold)}
+.tab.on{background:var(--dark);border-color:var(--dark);color:var(--gold3)}
+.tab i{font-style:normal;opacity:.5;margin-left:4px;font-size:.68rem}
+
+/* ── PROMPT CARD ── */
+.pcard{background:var(--s0);border:1px solid var(--bdr);border-radius:var(--r2);margin-bottom:.7rem;box-shadow:var(--sh);overflow:hidden;transition:border-color .15s}
+.pcard:hover{border-color:var(--bdr2)}
+.pcard.done{border-color:var(--greenbr);background:linear-gradient(var(--greenbg),var(--greenbg)) padding-box}
+.phd{padding:1.05rem 1.2rem;cursor:pointer;display:flex;gap:1rem;align-items:flex-start}
+.pnum{font-family:'DM Serif Display',Georgia,'Times New Roman',serif;font-size:1.05rem;color:var(--gold);background:var(--goldbg);border:1px solid var(--goldbr);width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pcard.done .pnum{color:var(--green);background:var(--greenbg);border-color:var(--greenbr)}
+.pmeta{flex:1;min-width:0}
+.pblk{font-size:.6rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px}
+.ptitle{font-size:.94rem;font-weight:800;color:var(--ink);line-height:1.35}
+.pquote{font-size:.79rem;color:var(--ink2);font-style:italic;margin-top:.3rem;line-height:1.6}
+.ptags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem;align-items:center}
+.tg{font-size:.64rem;font-weight:800;padding:.14rem .55rem;border-radius:99px;background:var(--s2);color:var(--ink2)}
+.tg.gd{background:var(--goldbg);color:var(--gold);border:1px solid var(--goldbr)}
+.tg.gr{background:var(--greenbg);color:var(--green);border:1px solid var(--greenbr)}
+.pact{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0}
+.pchev{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.pbody{display:none;border-top:1px solid var(--bdr);padding:1.1rem 1.2rem 1.2rem;background:var(--s1)}
+.pcard.open .pbody{display:block}
+.pbody-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;flex-wrap:wrap;gap:.5rem}
+.pbody-hd span{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+pre.ptext{background:var(--dark);color:#e9e5db;border-radius:12px;padding:1.1rem 1.2rem;font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;font-size:.775rem;line-height:1.72;white-space:pre-wrap;word-wrap:break-word;overflow-x:auto;max-height:520px;overflow-y:auto}
+pre.ptext b{color:var(--gold3);font-weight:700}
+pre.ptext v{color:var(--gold3);background:rgba(232,200,106,.13);border-radius:4px;padding:0 3px;font-style:normal}
+pre.ptext v.f{color:#9fe08f;background:rgba(159,224,143,.13)}
+.pfoot{display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap;align-items:center}
+.hint{font-size:.72rem;color:var(--ink3);margin-left:auto}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(90px);background:var(--dark);color:var(--gold3);padding:.7rem 1.3rem;border-radius:11px;font-size:.82rem;font-weight:700;z-index:900;opacity:0;transition:all .26s;box-shadow:0 8px 30px rgba(0,0,0,.28);pointer-events:none}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty{padding:3rem;text-align:center;color:var(--ink3);font-style:italic;background:var(--s0);border:1px dashed var(--bdr2);border-radius:var(--r2)}
+
+@media(max-width:1000px){.steps{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:820px){
+  .sidebar{position:static;width:100%;height:auto}
+  .main{margin-left:0}
+  .app{flex-direction:column}
+  .hero h2{font-size:1.5rem}
+  .wrap{padding:1rem}
+  .phd{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">GO On AGRO</div>
+    <div class="brand-sub">Biblioteca de Prompts v5</div>
+  </div>
+  <div class="sprog">
+    <div class="sprog-l">Progresso</div>
+    <div class="sprog-v" id="sp-v">0 / 15</div>
+    <div class="sbar"><i id="sp-b" style="width:0%"></i></div>
+  </div>
+  <div class="nav-sec">Blocos</div>
+  <div id="nav-blocos"></div>
+  <div class="nav-sec">Ferramentas</div>
+  <button class="nv" onclick="scrollTo2('sec-vars')"><span class="dot"></span>Variáveis reutilizáveis</button>
+  <button class="nv" onclick="expAll()"><span class="dot"></span>Exportar tudo (.md)</button>
+  <button class="nv" onclick="resetProg()"><span class="dot"></span>Zerar progresso</button>
+  <div class="sfooter"><b>GO On AGRO</b><br>15 prompts executáveis<br>Precificação Inteligente v5</div>
+</aside>
+
+<div class="main">
+<div class="topbar">
+  <div><h1>Biblioteca de Prompts</h1><p id="tb-s">15 prompts executáveis · 5 blocos · 10 variáveis reutilizáveis</p></div>
+  <div class="topbar-r">
+    <span class="vcount" id="v-count">0/10 variáveis</span>
+    <button class="btn btn-gd btn-sm" onclick="scrollTo2('sec-prompts')">▾ Ir para os prompts</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-tag">Menos planilha. Mais margem.</div>
+    <h2>15 prompts <em>executáveis</em> para construir o GO On AGRO v5 do zero.</h2>
+    <p>Cada prompt é uma ordem de execução, não uma descrição: começa com um verbo (crie, implemente, gere, calcule), lista os entregáveis numerados e fecha com critérios de aceite objetivos. Preencha as variáveis uma vez e elas entram automaticamente em todos os 15.</p>
+    <div class="hero-stats">
+      <div class="hstat"><b>15</b><span>Prompts</span></div>
+      <div class="hstat"><b>5</b><span>Blocos</span></div>
+      <div class="hstat"><b>10</b><span>Variáveis</span></div>
+      <div class="hstat"><b id="hs-done">0</b><span>Executados</span></div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step"><div class="step-n">1</div><h4>Preencha as variáveis</h4><p>Informe empresa, segmento, stack e regime tributário uma única vez.</p></div>
+    <div class="step"><div class="step-n">2</div><h4>Escolha o bloco</h4><p>Siga a ordem: Fundação → Cadastros → Motor → Análises → Comercial.</p></div>
+    <div class="step"><div class="step-n">3</div><h4>Copie e execute</h4><p>Cole o prompt já preenchido na sua IA de desenvolvimento e rode.</p></div>
+    <div class="step"><div class="step-n">4</div><h4>Valide o aceite</h4><p>Confira os critérios do prompt e marque como executado.</p></div>
+  </div>
+
+  <div class="card" id="sec-vars">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+      <div class="ct">Variáveis reutilizáveis</div>
+      <div style="display:flex;gap:.4rem">
+        <button class="btn btn-ol btn-xs" onclick="fillDemo()">Preencher exemplo</button>
+        <button class="btn btn-ol btn-xs" onclick="clearVars()">Limpar</button>
+      </div>
+    </div>
+    <div class="vgrid" id="vgrid"></div>
+    <p style="font-size:.74rem;color:var(--ink3);margin-top:.9rem;line-height:1.6">O valor preenchido substitui o marcador em todos os prompts na hora de copiar. Campos em branco permanecem como <code style="font-family:ui-monospace,monospace;color:var(--gold);font-size:.72rem">{MARCADOR}</code> para você completar depois.</p>
+  </div>
+
+  <div id="sec-prompts">
+    <div class="toolbar">
+      <div class="search"><span>⌕</span><input id="q" placeholder="Buscar por título, módulo ou palavra-chave..." oninput="render()"></div>
+      <button class="btn btn-ol btn-sm" id="btn-pend" onclick="togglePend()">Mostrar só pendentes</button>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="lista"></div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<script>
+(function(){
+
+/* ══════════════════════════════════════════════
+   VARIÁVEIS REUTILIZÁVEIS
+   ══════════════════════════════════════════════ */
+const VARS=[
+ {k:'EMPRESA',   l:'Nome do sistema / empresa', ph:'GO On AGRO', d:'GO On AGRO'},
+ {k:'SEGMENTO',  l:'Segmento de atuação',       ph:'consultoria em nutrição animal', d:'consultoria técnica em nutrição animal e pecuária'},
+ {k:'STACK',     l:'Stack técnica',             ph:'HTML + CSS + JS puro', d:'HTML5, CSS3 e JavaScript puro (ES6+), arquivo único, sem framework e sem build step'},
+ {k:'PERSIST',   l:'Camada de persistência',    ph:'localStorage', d:'localStorage do navegador, sob a chave goa5'},
+ {k:'REGIME',    l:'Regime tributário padrão',  ph:'Simples Nacional', d:'Simples Nacional'},
+ {k:'ALIQUOTA',  l:'Alíquota padrão de imposto',ph:'6', d:'6'},
+ {k:'PALETA',    l:'Paleta de cores',           ph:'creme, dourado e grafite', d:'fundo creme #f5f3ee, superfície #ffffff, tinta #1a1810, dourado #b8902a / #c9a84c / #e8c86a, verde #276626, vermelho #b02828'},
+ {k:'TIPOGRAFIA',l:'Tipografia',                ph:'DM Serif Display + Mulish', d:'DM Serif Display para títulos e Mulish (400 a 800) para texto e interface'},
+ {k:'MOEDA',     l:'Moeda e locale',            ph:'BRL / pt-BR', d:'Real brasileiro (R$) formatado em pt-BR com duas casas decimais'},
+ {k:'META',      l:'Meta de lucro padrão (%)',  ph:'20', d:'20'}
+];
+
+/* ══════════════════════════════════════════════
+   BLOCOS
+   ══════════════════════════════════════════════ */
+const BLOCOS=[
+ {id:'fund', n:'Fundação',            ico:'◆', desc:'Esqueleto do sistema, dados e componentes'},
+ {id:'cad',  n:'Cadastros',           ico:'▤', desc:'As quatro bases que alimentam todo o cálculo'},
+ {id:'motor',n:'Motor de Precificação',ico:'⚙', desc:'A matemática: MC, rateio e preço sugerido'},
+ {id:'anal', n:'Análises',            ico:'▲', desc:'Simulação, comparação e ponto de equilíbrio'},
+ {id:'com',  n:'Comercial & Entrega', ico:'▣', desc:'Proposta, dashboard e onboarding'}
+];
+
+/* ══════════════════════════════════════════════
+   OS 15 PROMPTS
+   ══════════════════════════════════════════════ */
+const PROMPTS=[
+
+/* ─────────── BLOCO 1 — FUNDAÇÃO ─────────── */
+{n:1,b:'fund',t:'Crie a estrutura base, a navegação e os design tokens',
+ q:'Não tenho onde começar — preciso do esqueleto do sistema antes de qualquer cálculo.',
+ tags:['Shell','Navegação','Design tokens'],
+ p:`Crie a estrutura base de um sistema web de precificação chamado {EMPRESA}, voltado para {SEGMENTO}.
+
+CONTEXTO
+O sistema é operado por um consultor que precisa saber, para cada produto e serviço que vende, se o preço praticado hoje cobre todos os custos e ainda gera lucro. Tudo roda no navegador, sem servidor.
+
+EXECUTE, NESTA ORDEM
+1. Crie um único arquivo index.html autossuficiente usando {STACK}. Não use CDN de framework, não use bundler, não crie arquivos auxiliares.
+2. Defina todos os design tokens em :root como variáveis CSS, usando a paleta {PALETA} e a tipografia {TIPOGRAFIA}. Nomeie os tokens: --bg, --s0 a --s3 (superfícies), --ink, --ink2, --ink3 (texto), --gold, --gold2, --gold3, --goldbg, --goldbr, --dark, --dark2, --green, --red, --amb com suas variantes de fundo e borda, --bdr, --bdr2, --r, --r2, --r3 (raios) e --sh (sombra). Nenhuma cor pode aparecer hardcoded fora do :root.
+3. Implemente o layout em duas colunas: sidebar fixa de 224px à esquerda com fundo --dark, e área principal com margin-left de 224px contendo uma topbar sticky e o conteúdo rolável abaixo.
+4. Monte a sidebar com o logotipo, o subtítulo do produto e os grupos de navegação nesta ordem exata: Início (Dashboard); 1. Cadastros (Produtos Revenda, Serviços/Produtos, Folha de Pagamento, Despesas Fixas, Clientes); 2. Precificação (Pricing Serviços, Pricing Revenda); 3. Análises (Simulação de Resultados, Análise Individual, Ponto de Equilíbrio); 4. Comercial (Propostas, Preços Sugeridos); Sistema (Configurações, Guia de Uso). Cada item de cadastro exibe um contador numérico à direita.
+5. Implemente o roteador client-side: uma função nav(id, btn) que remove a classe .on de todas as páginas e de todos os botões, aplica .on na página pg-<id> e no botão clicado, atualiza título e subtítulo da topbar a partir de um mapa PMAP, e dispara a função de renderização daquela página a partir de um mapa RFNS. Nenhum recarregamento de página, nenhuma alteração de URL.
+6. Crie o componente "hero" colapsável reutilizável: um bloco explicativo no topo de cada página, com ícone, título, texto de apoio e uma trilha de passos numerados em pílulas. Clicar no bloco alterna entre expandido e recolhido, e o rótulo alterna entre "ocultar" e "mostrar".
+7. Crie o componente de tooltip: um botão circular "i" que revela, no hover, uma caixa escura de 230px posicionada à direita com o texto explicativo. Ele será usado em todo rótulo que envolva conceito financeiro.
+8. Crie as páginas vazias de todos os módulos listados no item 4, cada uma com seu hero preenchido e um card placeholder.
+
+CRITÉRIOS DE ACEITE
+- Clicar em qualquer item da sidebar troca a página instantaneamente, sem recarregar e sem erro no console.
+- A topbar exibe o título e o subtítulo corretos de cada módulo.
+- Recolher um hero em uma página não afeta os heroes das outras.
+- Reduzir a janela para 820px empilha sidebar e conteúdo sem quebrar o layout nem gerar rolagem horizontal.
+- Trocar o valor de --gold no :root altera o acento em todo o sistema, sem exceção.`},
+
+{n:2,b:'fund',t:'Implemente a camada de dados, a persistência e o backup',
+ q:'Fecho o navegador e perco tudo o que cadastrei.',
+ tags:['Estado','localStorage','Backup JSON'],
+ p:`Implemente a camada de dados e persistência do {EMPRESA}, sobre a estrutura base já criada.
+
+EXECUTE, NESTA ORDEM
+1. Declare um objeto de estado único chamado D, com exatamente estas coleções e defaults:
+   - revs: []      produtos para revenda
+   - servs: []     serviços e produtos próprios
+   - funcs: []     colaboradores
+   - desps: []     despesas fixas
+   - clis: []      clientes
+   - props: []     propostas emitidas
+   - simV: {}      previsões de venda por id de produto
+   - enc: { fer:11.11, t13:8.33, t13f:2.33, inss:20, sat:0, edu:0, inc:0, fgts:8, fgts2:4 }
+   - cfg: { emp:'{EMPRESA}', cnpj:'', reg:'{REGIME}', aliq:{ALIQUOTA}, vh:150, at:30 }
+2. Implemente SV() para gravar D em {PERSIST} e LD() para recarregar, mesclando o objeto salvo sobre os defaults com spread, de modo que uma versão antiga sem uma coleção nova não quebre o sistema. Envolva ambas em try/catch: se a persistência falhar (modo privado, cota estourada), o sistema continua funcionando em memória e avisa o usuário uma única vez.
+3. Implemente os utilitários: uid() gerando id único a partir de timestamp em base36 mais sufixo aleatório; R(v) formatando número como {MOEDA}; Rp(v,casas) formatando percentual; gv(id) lendo campo numérico do DOM com fallback 0; gvs(id) lendo campo de texto já com trim.
+4. Implemente o CRUD genérico: toda gravação persiste com SV(), fecha o modal, re-renderiza a tabela da página ativa, atualiza os contadores da sidebar e exibe um toast de confirmação. A exclusão pede confirmação antes de remover.
+5. Crie o componente de toast: mensagem flutuante no rodapé central, com variantes neutra, de sucesso e de erro, que some sozinha após 2,7 segundos e reinicia o timer se uma nova mensagem chegar antes.
+6. Implemente o backup: expJSON() baixa o estado completo como arquivo .json datado; impJSON(evento) lê um arquivo escolhido pelo usuário, valida que o JSON contém as chaves esperadas, pede confirmação informando quantos registros serão importados, substitui o estado e re-renderiza tudo; limparTudo() apaga o armazenamento após dupla confirmação.
+7. Implemente updBadges() para sincronizar os contadores da sidebar com o tamanho de cada coleção, e chame-a a cada navegação e a cada gravação.
+
+CRITÉRIOS DE ACEITE
+- Cadastrar um registro, recarregar a página com F5 e encontrar o registro intacto.
+- Exportar o backup, executar Limpar Tudo, reimportar o arquivo e recuperar exatamente o mesmo estado.
+- Importar um JSON inválido exibe erro e mantém os dados atuais sem corromper nada.
+- Os contadores da sidebar batem com o número real de registros em qualquer momento.
+- Nenhuma função grava no armazenamento sem passar por SV().`},
+
+{n:3,b:'fund',t:'Gere a biblioteca de componentes de interface',
+ q:'Cada tela ficou com um estilo diferente e o sistema parece remendado.',
+ tags:['Componentes','Tabelas','Modais'],
+ p:`Gere a biblioteca de componentes de interface do {EMPRESA}, para ser reutilizada por todos os módulos.
+
+EXECUTE, NESTA ORDEM
+1. Crie o componente card: superfície --s0, borda --bdr, raio --r2, sombra --sh, com um cabeçalho .ct em {TIPOGRAFIA} serifada precedido de uma barra vertical dourada de 3px, e uma variante com botão de ação alinhado à direita.
+2. Crie o componente KPI: rótulo em caixa alta, miúdo, na cor --ink3, e valor em destaque logo abaixo. Entregue as variantes clara e escura (fundo --dark com valor em --gold3). Eles são exibidos em grade de 3, 4 ou 5 colunas conforme a página.
+3. Crie o componente tabela: cabeçalho fixo, linhas com hover, classes utilitárias .r para alinhar à direita (todo valor monetário) e .c para centralizar, wrapper com rolagem horizontal para as tabelas largas, linha de rodapé totalizadora com fundo destacado, e um estado vazio em itálico centralizado com a mensagem passada por parâmetro.
+4. Crie o componente badge com as variantes: dourada (categoria), verde (saudável), âmbar (atenção), vermelha (crítico) e cinza (neutro). Implemente a função que escolhe a variante a partir de um percentual de margem: 30% ou mais verde, de 15% a 30% âmbar, abaixo de 15% vermelho.
+5. Crie o componente modal: overlay escurecido, caixa centralizada com largura máxima de 560px, cabeçalho com título e botão de fechar, corpo em grade de 2 ou 3 colunas de campos, e rodapé com Cancelar e Salvar. Fechar pelo X, pelo Cancelar, pelo clique fora e pela tecla Esc.
+6. Crie o componente de campo de formulário: rótulo em caixa alta miúdo, controle abaixo, borda que muda para dourado no foco, e suporte a tooltip embutido no rótulo. Cubra texto, número, data, seleção, área de texto e o par slider mais valor sincronizado.
+7. Crie o componente barra de proporção: trilho cinza com preenchimento dourado proporcional, usado para mostrar a participação de cada item em um total.
+8. Crie os botões nas variantes escura, dourada, contornada e destrutiva, nos tamanhos padrão, pequeno e extrapequeno.
+
+CRITÉRIOS DE ACEITE
+- Nenhum componente carrega cor, raio ou sombra fora dos tokens do :root.
+- Todo valor monetário na interface passa por R() e aparece alinhado à direita.
+- Abrir um modal, apertar Esc e fechá-lo não deixa o overlay preso na tela.
+- Uma tabela sem registros mostra o estado vazio, nunca um corpo em branco.
+- O badge de margem troca de cor sozinho ao mudar o percentual, sem intervenção manual.`},
+
+/* ─────────── BLOCO 2 — CADASTROS ─────────── */
+{n:4,b:'cad',t:'Crie a tabela e o CRUD de Produtos para Revenda',
+ q:'Compro do fornecedor e revendo, mas não sei quanto sobra de cada item.',
+ tags:['CRUD','Tabela','Margem'],
+ p:`Crie o módulo de cadastro de Produtos para Revenda do {EMPRESA}.
+
+CONTEXTO
+São os produtos comprados de fornecedores e revendidos sem transformação. O preço praticado hoje é o ponto de partida da análise: o sistema precisa dizer se ele cobre custo, frete e encargos.
+
+EXECUTE, NESTA ORDEM
+1. Crie o modal de cadastro com os campos: Descrição (obrigatório), Fornecedor, Quantidade por embalagem (inteiro, mínimo 1), Unidade de medida (seleção: Un., Kg, g, L, mL, m, Pacote, Caixa, Saco, Outro), Preço por unidade de medida em R$, Frete em R$, Impostos sobre venda em %, Taxa de máquina de cartão em %, Taxa de aplicativo em %, Comissão sobre vendas em % e Preço de venda atual em R$.
+2. Preencha o campo de impostos com a alíquota padrão de {ALIQUOTA}% vinda das configurações sempre que for um cadastro novo.
+3. Adicione tooltip explicativo nos campos Preço por unidade de medida, Impostos sobre venda e Preço de venda atual, deixando claro que o último é o preço praticado hoje e a base de toda a análise.
+4. Crie a tabela do módulo com as colunas: Cód, Produto, Fornecedor, Unidade, Custo unitário, Frete, Custo variável, Despesas variáveis, Preço praticado, MC em R$ e MC em %, mais a coluna de ações.
+5. Calcule cada linha assim: Custo variável = preço de compra + frete. Despesas variáveis = preço praticado multiplicado pela soma dos percentuais de imposto, máquina, aplicativo e comissão. MC em R$ = preço praticado − custo variável − despesas variáveis. MC em % = MC em R$ dividido pelo preço praticado.
+6. Pinte a MC em R$ de verde quando positiva e de vermelho quando negativa, e aplique na MC em % o badge de faixa (verde, âmbar ou vermelho).
+7. Implemente salvar, editar e excluir, bloqueando a gravação sem descrição com um toast de erro. Ao gravar, se a página de Pricing de Revenda estiver aberta, re-renderize-a também.
+8. Numere os códigos sequencialmente com três dígitos, começando em 001.
+
+CRITÉRIOS DE ACEITE
+- Cadastrar um produto de custo 100, frete 10, impostos 6% e preço 150 resulta em custo variável 110, despesas variáveis 9, MC de 31 e MC% de 20,7%, exibida com badge âmbar.
+- Um produto com preço abaixo do custo mostra MC negativa em vermelho, sem travar a tabela.
+- Editar um produto reabre o modal com todos os valores preenchidos, inclusive os percentuais.
+- A tabela sem registros exibe "Nenhum produto cadastrado".`},
+
+{n:5,b:'cad',t:'Crie a tabela e o CRUD de Serviços e Produtos Próprios',
+ q:'Cobro por hora e por visita no chute, sem saber o custo real da entrega.',
+ tags:['CRUD','Mão de obra','Escopo'],
+ p:`Crie o módulo de cadastro de Serviços e Produtos Próprios do {EMPRESA}, para {SEGMENTO}.
+
+CONTEXTO
+São as entregas produzidas pela própria operação: consultorias, visitas técnicas, formulações e planos. Diferente da revenda, o custo aqui se divide entre matéria-prima e mão de obra direta.
+
+EXECUTE, NESTA ORDEM
+1. Crie o modal de cadastro com os campos: Descrição (obrigatório), Categoria (seleção: Consultoria, Análise Técnica, Visita Técnica, Treinamento, Mentoria, Palestra, Formulação de Dieta, Plano Nutricional, Planejamento, Protocolo Sanitário, Assessoria Online, Outro), Unidade (seleção: Hora, Sessão, Visita, Projeto, Mês, Relatório, Ha, Un., Outro), CMV em R$, Custo de mão de obra direta em R$, Frete e deslocamento em R$, Impostos sobre venda em %, Taxa de máquina em %, Taxa de aplicativo em %, Comissão em %, Preço de venda atual em R$ e Escopo do que está incluído em área de texto larga.
+2. Adicione tooltip em CMV explicando que são insumos e materiais consumidos na entrega, e em Mão de obra direta explicando que é o tempo dedicado especificamente àquele serviço, medido em horas multiplicadas pelo valor da hora do profissional.
+3. Crie a tabela com as colunas: Cód, Serviço, Categoria, Unidade, CMV, MO Direta, Frete, Custo variável, Despesas variáveis, Preço praticado, MC em R$ e MC em %, mais ações.
+4. Calcule o custo variável como CMV + mão de obra direta + frete, e mantenha a mesma fórmula de despesas variáveis, MC e MC% do módulo de revenda, para que as duas linhas de negócio sejam comparáveis.
+5. Exiba a categoria como badge dourado e mostre, abaixo do nome, os primeiros 50 caracteres do escopo em texto reduzido quando ele existir.
+6. Implemente salvar, editar e excluir com as mesmas regras de validação e re-renderização do módulo de revenda.
+
+CRITÉRIOS DE ACEITE
+- Um serviço com CMV 0, mão de obra 300, frete 50, impostos 6% e preço 800 resulta em custo variável 350, despesas variáveis 48, MC de 402 e MC% de 50,3% com badge verde.
+- Salvar sem descrição não grava e mostra o aviso.
+- O escopo longo aparece truncado na tabela e completo ao reabrir o modal.
+- Os cálculos de MC de revenda e de serviço saem da mesma função compartilhada, não de duas cópias.`},
+
+{n:6,b:'cad',t:'Implemente a Folha de Pagamento com encargos CLT parametrizáveis',
+ q:'Pago R$ 3.000 de salário e não faço ideia de quanto o funcionário custa de verdade.',
+ tags:['Encargos','CLT','Custo hora'],
+ p:`Implemente o módulo de Folha de Pagamento do {EMPRESA}, com encargos configuráveis pelo usuário.
+
+CONTEXTO
+O custo real de um colaborador CLT é muito maior que o salário. O sistema precisa tornar essa diferença visível e transformá-la em custo fixo mensal e em custo por hora.
+
+EXECUTE, NESTA ORDEM
+1. Crie o painel de alíquotas com dois grupos editáveis. Encargos trabalhistas: Provisão de férias mais um terço (11,11%), Provisão de 13º (8,33%) e Previsão de 13º sobre férias (2,33%). Encargos sociais: INSS (20%), SAT/RAT (0%), Salário Educação (0%), INCRA/SEST/SEBRAE/SENAT (0%), FGTS (8%) e FGTS mais provisão de rescisão (4%). Toda alíquota é editável e persistida.
+2. Exiba o subtotal de cada grupo e o total geral de encargos, recalculando a cada digitação.
+3. Crie o modal de colaborador com os campos: Nome completo (obrigatório), Vínculo (seleção: CLT, Prestador PJ, Sócio/Pró-labore, Estagiário), Cargo, Setor, Data de contratação, Salário bruto em R$, Carga horária mensal em horas (padrão 220), Vale transporte, Vale refeição e Convênio médico.
+4. Implemente a função de custo do colaborador: encargos sociais e trabalhistas incidem sobre o salário apenas quando o vínculo for CLT; benefícios são a soma de vale transporte, vale refeição e convênio; custo total é salário mais encargos mais benefícios; custo por hora é o custo total dividido pela carga horária, com proteção contra divisão por zero.
+5. Mostre uma prévia ao vivo dentro do próprio modal, com quatro números atualizados a cada digitação: Encargos, Benefícios, Custo total e R$ por hora.
+6. Crie a tabela com as colunas: Cód, Nome, Cargo, Setor, Vínculo, Data, Salário, Encargos sociais, Encargos trabalhistas, VT, VR, Convênio, Custo total e R$ por hora, com linha de rodapé somando o custo total da equipe.
+7. Exiba quatro KPIs no topo: Custo total da equipe, Total de encargos CLT, Total de benefícios e o total de colaboradores com o percentual de encargos vigente.
+8. Exponha o custo total da folha para que o módulo de Despesas Fixas o some automaticamente ao total fixo mensal.
+
+CRITÉRIOS DE ACEITE
+- Um CLT com salário 3.000, carga de 220h e encargos padrão de 53,77% resulta em custo total de aproximadamente R$ 4.613 e custo por hora de aproximadamente R$ 20,97.
+- Trocar o vínculo para PJ zera os encargos e mantém apenas salário e benefícios.
+- Alterar a alíquota do INSS recalcula, na mesma hora, a tabela inteira, os KPIs e o total fixo.
+- As alíquotas editadas sobrevivem ao recarregamento da página.`},
+
+{n:7,b:'cad',t:'Crie os cadastros de Despesas Fixas e de Clientes',
+ q:'Sei que tenho custo fixo, mas ele está espalhado em anotações soltas.',
+ tags:['Custo fixo','Clientes','Composição'],
+ p:`Crie os módulos de Despesas Fixas e de Clientes do {EMPRESA}.
+
+PARTE A — DESPESAS FIXAS
+1. Crie o modal com dois campos: Descrição (obrigatório) e Valor mensal em R$ (obrigatório).
+2. Crie a tabela com Descrição, Valor mensal, participação percentual no total fixo e ações. Renderize a participação como barra de proporção dourada seguida do percentual.
+3. Calcule o total fixo mensal como a soma das despesas cadastradas MAIS o custo total da folha de pagamento, importado automaticamente do módulo de colaboradores. Deixe explícito na interface que a folha entra sozinha e não deve ser recadastrada aqui.
+4. Crie o painel de resumo com três linhas: Folha de pagamento, Outras despesas com a contagem de itens, e Total fixo mensal em destaque dourado.
+5. Crie o gráfico de composição: as seis maiores despesas em barras horizontais proporcionais à maior delas, ordenadas do maior para o menor valor.
+
+PARTE B — CLIENTES
+6. Crie o modal com os campos: Nome ou Fazenda (obrigatório), Responsável, E-mail, Telefone, Cidade e Estado, Atividade (seleção: Gado de Corte, Gado de Leite, Misto, Suinocultura, Avicultura, Agricultura, Outro) e Observações.
+7. Crie a tabela com Nome, Responsável, E-mail, Telefone, Cidade, Atividade como badge dourado, e ações.
+8. Exponha a lista de clientes para o módulo de Propostas consumir em um seletor, sem redigitação.
+
+CRITÉRIOS DE ACEITE
+- Cadastrar aluguel de 2.000 com uma folha de 8.000 já lançada resulta em total fixo de 10.000 e participação de 20% para o aluguel.
+- Excluir todos os colaboradores reduz o total fixo apenas ao somatório das despesas avulsas.
+- A tabela de despesas vazia informa que a folha continua sendo somada automaticamente.
+- Um cliente cadastrado aparece imediatamente no seletor do módulo de Propostas.`},
+
+/* ─────────── BLOCO 3 — MOTOR DE PRECIFICAÇÃO ─────────── */
+{n:8,b:'motor',t:'Implemente o motor de cálculo de margem de contribuição',
+ q:'Cada tela calcula margem de um jeito e os números nunca batem entre si.',
+ tags:['Núcleo','MC','Fonte única'],
+ p:`Implemente o motor de cálculo de margem de contribuição do {EMPRESA}. Esta é a função da qual todos os demais módulos dependem — nenhum outro ponto do sistema pode recalcular margem por conta própria.
+
+EXECUTE, NESTA ORDEM
+1. Crie a função calcMC(produto, preco) como fonte única de verdade do cálculo, aceitando indistintamente um produto de revenda e um serviço.
+2. Calcule o custo variável como a soma de CMV, mão de obra direta e frete. Na revenda, o preço de compra ocupa o lugar do CMV e a mão de obra é zero, de forma que a mesma função sirva às duas naturezas sem ramificação.
+3. Calcule as despesas variáveis separadamente, cada uma incidindo sobre o PREÇO DE VENDA e nunca sobre o custo: imposto, taxa de máquina, taxa de aplicativo e comissão. Devolva as quatro parcelas isoladas e também a soma.
+4. Calcule a margem de contribuição em reais como preço menos custo variável menos despesas variáveis, e a margem percentual como a razão entre a MC e o preço, devolvendo zero quando o preço for zero, sem gerar NaN nem Infinity.
+5. Devolva um objeto único com custo variável, despesas variáveis totais, as quatro parcelas discriminadas, MC em reais e MC em percentual.
+6. Implemente a função inversa precoParaLucro(produto, lucroPercentual, rateioFixo): dado o lucro desejado sobre o preço de venda e a parcela de custo fixo atribuída ao produto, resolva o preço necessário. Deduza a fórmula isolando o preço, já que as despesas variáveis dependem dele: preço = (custo variável + rateio fixo) dividido por (1 − soma dos percentuais variáveis − percentual de lucro), todos em forma decimal.
+7. Trate o caso em que a soma dos percentuais variáveis mais o lucro desejado alcança ou ultrapassa 100%: o preço tenderia ao infinito, então devolva um sinalizador de inviabilidade e faça a interface exibir a mensagem de meta inatingível em vez de um número absurdo.
+8. Implemente markup(preco, custoVariavel) como a razão entre preço e custo variável.
+
+CRITÉRIOS DE ACEITE
+- Produto com custo variável 350, impostos 6%, comissão 4% e preço 800 devolve despesas variáveis de 80, MC de 370 e MC% de 46,25%.
+- precoParaLucro com custo variável 350, rateio fixo 100, variáveis somando 10% e lucro de {META}% devolve um preço que, ao ser passado de volta para calcMC, reproduz exatamente o lucro pedido. As duas funções são inversas e precisam fechar em ida e volta.
+- Preço zero devolve MC% igual a zero, nunca NaN.
+- Variáveis de 85% somadas a lucro de {META}% devolvem inviável, sem travar a interface.
+- Alterar a fórmula da MC em um único ponto do código propaga a mudança para todos os módulos.`},
+
+{n:9,b:'motor',t:'Gere as tabelas de Pricing com linhas Bruto e Líquido',
+ q:'Quando dou desconto, não sei se ainda estou ganhando ou pagando para trabalhar.',
+ tags:['Desconto','Bruto/Líquido','CSV'],
+ p:`Gere as duas tabelas de Pricing do {EMPRESA} — uma para serviços e produtos próprios, outra para produtos de revenda — com análise em dois níveis de preço por item.
+
+EXECUTE, NESTA ORDEM
+1. Crie um controle global de desconto em percentual no topo de cada tabela, aplicado sobre o preço praticado de todos os itens ao mesmo tempo.
+2. Renderize DUAS linhas por produto. A linha G traz o preço cheio praticado hoje. A linha N, logo abaixo e com fundo levemente destacado, traz o mesmo produto ao preço com desconto, rotulada como "com desconto".
+3. Monte as colunas nesta ordem: indicador G/N, Cód, Produto, Preço, os componentes de custo (CMV, mão de obra e frete nos serviços; preço de compra e frete na revenda), Custo variável em R$ e em %, Imposto em R$ e em %, Taxa de máquina em R$ e em %, Taxa de aplicativo em R$ e em %, Comissão em R$ e em %, Despesas variáveis totais em R$ e em %, MC em R$ e MC em %.
+4. Calcule todos os percentuais sobre o preço da respectiva linha, para que a linha N mostre honestamente como o desconto corrói a margem.
+5. Consuma exclusivamente a função calcMC do motor. Não reimplemente nenhuma fórmula neste módulo.
+6. Torne o nome do produto e um link "editar" clicáveis, abrindo o modal de cadastro daquele item, e re-renderize a tabela ao salvar.
+7. Aplique o badge de faixa na coluna MC% das duas linhas, de modo que a degradação da margem fique visível pela cor.
+8. Implemente a exportação para CSV com separador ponto e vírgula, BOM UTF-8 para abrir corretamente no Excel em português, e uma linha por nível G e N de cada produto.
+
+CRITÉRIOS DE ACEITE
+- Um serviço de preço 800 com 10% de desconto gera a linha N em 720, com a MC caindo e o percentual de custo variável subindo.
+- Um desconto grande o bastante para levar a MC a valor negativo exibe a linha N em vermelho com badge crítico.
+- Alterar o desconto global recalcula todas as linhas N na hora, sem recarregar a página.
+- O CSV exportado abre no Excel em português com acentuação correta e colunas separadas.
+- Editar um produto pelo link da tabela e salvar atualiza as duas linhas imediatamente.`},
+
+{n:10,b:'motor',t:'Implemente a Precificação Inteligente bidirecional com rateio por mix',
+ q:'Quero saber o preço ideal de todos os produtos de uma vez, já com o custo fixo dentro.',
+ tags:['Bidirecional','Rateio','Preço ideal'],
+ p:`Implemente o módulo de Precificação Inteligente do {EMPRESA}: o preço sugerido de todos os produtos calculado de uma só vez, com os custos fixos distribuídos proporcionalmente ao mix de vendas.
+
+CONTEXTO
+Precificar item a item ignora o fato de que o custo fixo é um só e precisa ser repartido. Um produto que responde por 40% do faturamento deve carregar 40% dos fixos — é a repartição mais justa e a única que fecha a conta no fim do mês.
+
+EXECUTE, NESTA ORDEM
+1. Crie o controle de lucro desejado global em percentual, com valor inicial de {META}%, e um botão que aplica esse percentual a todas as linhas de uma vez.
+2. Crie o seletor entre serviços e produtos de revenda, e os botões de exportar CSV e de aplicar os preços calculados de volta ao cadastro.
+3. Monte a tabela com as colunas: Cód, Produto, Unidade, Volume de vendas (editável), Faturamento, Custo direto, Despesas variáveis, Rateio de fixos, MC%, Lucro% (editável), Preço sugerido (editável), Markup e % do Mix.
+4. Implemente o rateio proporcional: calcule o faturamento previsto de cada produto como preço vezes volume; calcule o faturamento total; a parcela de fixos de cada produto é o total fixo mensal multiplicado pela razão entre o faturamento daquele produto e o faturamento total. Quando o faturamento total for zero, distribua os fixos igualmente entre os produtos com volume informado, em vez de dividir por zero.
+5. Implemente a BIDIRECIONALIDADE, que é o coração deste módulo. Editar o campo Lucro% recalcula o Preço sugerido pela função inversa do motor. Editar o campo Preço sugerido recalcula o Lucro% pela função direta. Os dois campos são espelhos um do outro e precisam permanecer coerentes em qualquer ordem de edição.
+6. Proteja a edição contra laço infinito: a atualização de um campo não pode disparar o recálculo que reescreve o outro em cascata. Ao editar um campo, atualize o outro sem devolver o foco nem sobrescrever o que está sendo digitado.
+7. Recalcule o rateio inteiro sempre que qualquer volume mudar, porque alterar o volume de um produto muda o mix e, portanto, a parcela de fixos de todos os demais.
+8. Exiba cinco KPIs: Faturamento previsto, Custo variável total, Rateio de fixos total, MC total e Lucro projetado total.
+9. Implemente o botão de aplicar ao cadastro: após confirmação, grave os preços sugeridos como novo preço praticado de cada produto e re-renderize os módulos afetados.
+
+CRITÉRIOS DE ACEITE
+- Com dois produtos e fixos de 10.000, sendo um responsável por 70% do faturamento, o primeiro recebe 7.000 de rateio e o segundo 3.000.
+- Digitar {META} no campo Lucro% de uma linha produz um preço que, relido pelo motor, devolve exatamente {META}% de lucro.
+- Digitar um preço manualmente atualiza o Lucro% da mesma linha e nenhuma outra.
+- Dobrar o volume de um produto redistribui o rateio de todas as linhas e altera os KPIs.
+- Aplicar ao cadastro pede confirmação e atualiza os preços praticados nos módulos de cadastro e de pricing.`},
+
+/* ─────────── BLOCO 4 — ANÁLISES ─────────── */
+{n:11,b:'anal',t:'Implemente a Simulação de Resultados com totalizadores',
+ q:'Se eu vender o que planejei, sobra lucro no fim do mês ou não?',
+ tags:['Projeção','Mix','DRE por produto'],
+ p:`Implemente o módulo de Simulação de Resultados do {EMPRESA}: a projeção do mês inteiro a partir da previsão de vendas, com todas as deduções abertas em colunas.
+
+EXECUTE, NESTA ORDEM
+1. Crie o seletor entre serviços e produtos de revenda e os botões de exportar CSV e de gerar proposta a partir da simulação.
+2. Monte a tabela com estas 17 colunas, nesta ordem: Cód, Produto, Preço praticado, Previsão de vendas (editável), Faturamento, Custos variáveis, Impostos, Taxa de máquina, Taxa de aplicativo, Comissão, MC em R$, MC em %, Rateio de fixos, Margem de lucro em R$, ML em %, Markup e % do Mix.
+3. Persista a previsão de vendas por id de produto na coleção simV do estado, de modo que a projeção sobreviva à navegação entre páginas e ao recarregamento.
+4. Mantenha as quatro deduções em colunas separadas em vez de agrupá-las: o usuário precisa enxergar exatamente onde o dinheiro está indo.
+5. Aplique o mesmo rateio proporcional ao mix do módulo de Precificação Inteligente, reutilizando a mesma função. Calcule a margem de lucro como MC menos rateio de fixos.
+6. Crie a linha TOTALIZADORES fixa no topo do cabeçalho, com fundo --dark e números em dourado, consolidando faturamento, custos variáveis, cada dedução, MC em R$ e em %, rateio, margem de lucro em R$ e em %.
+7. Exiba cinco KPIs acima da tabela: Faturamento previsto, MC total, Custo fixo total, Lucro projetado e Margem de lucro percentual, com o lucro em verde quando positivo e em vermelho quando negativo.
+8. Adicione tooltip nas colunas Faturamento, Custos variáveis, MC e Rateio de fixos explicando cada conceito em uma frase.
+9. Implemente a exportação CSV com a tabela completa e a linha de totalizadores.
+
+CRITÉRIOS DE ACEITE
+- A soma da coluna Faturamento é idêntica ao faturamento da linha de totalizadores, sem diferença de arredondamento visível.
+- A soma da coluna Rateio de fixos é igual ao total fixo mensal, sem sobra nem falta.
+- A soma da coluna % do Mix é 100%.
+- Zerar todas as previsões não gera NaN em nenhuma célula.
+- Alterar uma previsão recalcula o mix, o rateio de todas as linhas e os cinco KPIs simultaneamente.
+- A previsão digitada continua lá após navegar para outro módulo e voltar.`},
+
+{n:12,b:'anal',t:'Crie a Análise Individual comparando preço praticado e preço sugerido',
+ q:'Preciso mostrar ao cliente, linha a linha, por que o preço vai subir.',
+ tags:['Comparativo','Meta de lucro','Diagnóstico'],
+ p:`Crie o módulo de Análise Individual do {EMPRESA}: dois painéis lado a lado comparando o preço praticado hoje com o preço necessário para atingir a meta de lucro.
+
+EXECUTE, NESTA ORDEM
+1. Monte a página em três colunas: um painel estreito de parâmetros à esquerda e dois painéis de análise à direita, de larguras iguais.
+2. No painel de parâmetros, crie os campos: Tipo (serviço ou revenda), Produto (seleção alimentada pelo tipo escolhido), Desconto sobre o preço atual em %, Lucro desejado em % com valor inicial de {META}, e Rateio de despesas fixas em % com um atalho que estima o rateio automaticamente a partir do total fixo dividido pelo número de atendimentos configurado.
+3. No painel esquerdo, intitulado Preço praticado hoje, decomponha o preço atual (já com o desconto aplicado, quando houver) nesta ordem de linhas: Preço de venda, CMV, Mão de obra direta, Frete, Custo variável total, Impostos, Taxa de máquina, Taxa de aplicativo, Comissão, Despesas variáveis totais, Margem de contribuição em R$ e em %, Rateio de fixos, e Margem de lucro em R$ e em %.
+4. No painel direito, intitulado Preço sugerido, repita exatamente a mesma estrutura de linhas, porém calculada a partir do preço obtido pela função inversa do motor para o lucro desejado. Manter as duas estruturas idênticas é o que torna a comparação legível.
+5. Destaque a diferença: exiba, no painel direito, a variação em reais e em percentual do preço sugerido frente ao praticado, em verde quando o preço atual já for suficiente e em âmbar quando precisar subir.
+6. Escreva um diagnóstico em uma frase abaixo dos painéis, informando se o preço praticado cobre custos e meta, se cobre custos mas não a meta, ou se opera no prejuízo, e em quanto o preço precisa mudar.
+7. Recalcule os dois painéis a cada alteração de qualquer parâmetro, sem botão de recalcular.
+8. Exiba a mensagem de meta inatingível quando o motor sinalizar inviabilidade, explicando que a soma das despesas variáveis com o lucro desejado ultrapassa 100% do preço.
+
+CRITÉRIOS DE ACEITE
+- Selecionar um produto preenche os dois painéis na mesma renderização.
+- Com um produto cujo preço já supera a meta, o painel direito mostra variação negativa em verde e o diagnóstico confirma que há folga.
+- Aumentar o lucro desejado eleva o preço sugerido de forma monotônica.
+- Aplicar desconto reduz a MC do painel esquerdo sem alterar o painel direito.
+- Nenhum painel exibe NaN quando não há produto selecionado; ambos mostram o estado vazio.`},
+
+{n:13,b:'anal',t:'Calcule o Ponto de Equilíbrio com DRE e diagnóstico automático',
+ q:'Quanto preciso faturar por mês só para não ter prejuízo?',
+ tags:['PE contábil','PE econômico','DRE'],
+ p:`Calcule e apresente o Ponto de Equilíbrio do {EMPRESA}, nas versões contábil e econômica, acompanhado de um DRE simplificado e de um diagnóstico automático.
+
+EXECUTE, NESTA ORDEM
+1. Crie o painel de entradas com: Despesas fixas mensais em R$, acompanhado de um atalho que importa o total fixo já calculado nos módulos de folha e despesas; Margem de contribuição prevista, aceita em PERCENTUAL OU em REAIS, em dois campos alternativos; Lucro desejado em R$; Faturamento atual mensal em R$; Quantidade de vendas no mês; e Deduções sobre vendas em % apresentadas como slider de 0 a 30 com valor inicial de {ALIQUOTA}%.
+2. Implemente a entrada dupla de margem: registre qual dos dois campos foi editado por último e use aquele como fonte, convertendo automaticamente para o outro. Preencher o campo em reais deriva o percentual a partir do faturamento atual, e vice-versa. Nunca deixe os dois campos em conflito.
+3. Calcule o PE contábil como despesas fixas divididas pela margem de contribuição percentual em forma decimal — o faturamento mínimo para lucro zero.
+4. Calcule o PE econômico como despesas fixas mais lucro desejado, dividido pela mesma margem percentual — o faturamento necessário para atingir a meta.
+5. Exiba três KPIs: PE contábil, PE econômico e a margem de segurança, esta última como a distância percentual entre o faturamento atual e o PE contábil, em verde quando positiva e em vermelho quando negativa.
+6. Monte o DRE simplificado em linhas encadeadas: Faturamento bruto, menos Deduções sobre vendas, igual a Receita líquida, menos Custos variáveis, igual a Margem de contribuição, menos Custos fixos, igual a Resultado do mês — este último em destaque, verde se lucro e vermelho se prejuízo.
+7. Escreva o diagnóstico automático cobrindo os três cenários: faturamento acima do PE econômico, confirmando que a meta está sendo atingida e informando a folga; faturamento entre os dois pontos, informando que não há prejuízo mas a meta não é alcançada e quanto falta; faturamento abaixo do PE contábil, alertando para o prejuízo e informando quanto falta para o equilíbrio.
+8. Calcule e exiba o ticket médio como faturamento dividido pela quantidade de vendas, e a quantidade de vendas necessária para alcançar cada um dos dois pontos de equilíbrio.
+
+CRITÉRIOS DE ACEITE
+- Fixos de 10.000 com MC de 30% resultam em PE contábil de R$ 33.333,33.
+- Os mesmos fixos com lucro desejado de 5.000 resultam em PE econômico de R$ 50.000,00.
+- Informar a MC em reais preenche o percentual sozinho, e o inverso também funciona.
+- Margem de contribuição zero não gera divisão por zero: o sistema informa que o ponto de equilíbrio é inatingível com essa margem.
+- Faturamento de 40.000 no cenário acima produz o diagnóstico de que não há prejuízo mas faltam R$ 10.000 para a meta.
+- O resultado do DRE bate com a margem de lucro consolidada da Simulação de Resultados quando as premissas forem as mesmas.`},
+
+/* ─────────── BLOCO 5 — COMERCIAL & ENTREGA ─────────── */
+{n:14,b:'com',t:'Gere o módulo de Propostas Comerciais com prévia e impressão',
+ q:'Monto proposta no Word, redigito tudo e ainda erro o total.',
+ tags:['Proposta','Prévia','PDF'],
+ p:`Gere o módulo de Propostas Comerciais do {EMPRESA}, com prévia ao vivo e saída pronta para PDF.
+
+EXECUTE, NESTA ORDEM
+1. Monte a página em duas colunas: formulário à esquerda e prévia do documento à direita, atualizada a cada digitação.
+2. Crie o bloco Dados do prestador com Nome ou empresa, CNPJ ou CPF, E-mail, Telefone e Cidade. Persista esses dados e preencha-os sozinho nas próximas propostas — eles são digitados uma única vez.
+3. Crie o bloco Dados do cliente com um seletor que importa qualquer cliente já cadastrado, preenchendo nome, responsável, e-mail e cidade automaticamente, e mantendo a opção de preenchimento manual.
+4. Crie o bloco Itens da proposta com dois modos de inclusão. O primeiro abre um seletor com busca sobre os cadastros de serviços e produtos, trazendo descrição, unidade e preço já calculado. O segundo adiciona uma linha em branco para item avulso. Toda linha traz descrição, quantidade, preço unitário editável e total calculado, além do botão de remover.
+5. Crie o bloco Condições comerciais com Validade, Forma de pagamento, Prazo de entrega, Desconto geral em percentual, Observações e escopo incluído, e Forma de apresentação.
+6. Calcule o subtotal como a soma dos totais das linhas, aplique o desconto geral e exiba subtotal, desconto e total final em destaque dourado.
+7. Monte a prévia como um documento formal com cabeçalho de identidade visual, blocos de prestador e cliente, tabela de itens com totais, condições comerciais, observações e área de assinatura com data.
+8. Implemente a impressão: uma folha de estilo de mídia print que oculta sidebar, topbar e formulário, expande a prévia para a largura total da página, força fundos e cores a serem impressos e evita quebra de página no meio da tabela de itens.
+9. Implemente o histórico: gravar a proposta a adiciona à lista com número sequencial, cliente, data e valor total, permitindo reabrir, duplicar e excluir.
+
+CRITÉRIOS DE ACEITE
+- Importar um cliente da lista preenche os quatro campos sem redigitação.
+- Adicionar um serviço do cadastro traz o preço praticado atual e permite editá-lo apenas naquela proposta, sem alterar o cadastro.
+- Um desconto de 10% sobre subtotal de 5.000 resulta em total de 4.500 na prévia e no histórico.
+- Acionar a impressão gera um documento limpo, sem sidebar nem formulário, em uma ou mais páginas bem quebradas.
+- Uma proposta gravada é reaberta com todos os itens e condições preservados.`},
+
+{n:15,b:'com',t:'Crie o Dashboard, as Configurações e o Guia de Uso guiado',
+ q:'Abro o sistema e não sei por onde começar nem se os dados fazem sentido.',
+ tags:['Dashboard','Onboarding','Configurações'],
+ p:`Crie a camada de entrada do {EMPRESA}: o Dashboard consolidado, as Configurações e o Guia de Uso passo a passo.
+
+PARTE A — DASHBOARD
+1. Crie quatro KPIs no topo: Custo fixo mensal total, Total de itens cadastrados somando produtos e serviços, Margem de contribuição média da carteira e Ponto de equilíbrio contábil estimado.
+2. Crie o gráfico de composição do custo fixo em barras horizontais proporcionais, somando folha de pagamento e despesas cadastradas.
+3. Crie a lista dos últimos produtos precificados, com nome, preço praticado e badge de margem.
+4. Crie o painel de acesso rápido com quatro botões grandes levando a Pricing de Serviços, Nova Proposta, Simulação e Ponto de Equilíbrio.
+5. Crie o painel de indicadores com alertas acionáveis: quantos produtos estão com margem abaixo de 15%, quantos estão sem preço informado, e se as despesas fixas ainda não foram cadastradas. Cada alerta leva ao módulo correspondente ao ser clicado.
+
+PARTE B — CONFIGURAÇÕES
+6. Crie o formulário com Nome da empresa, CNPJ, Regime tributário (seleção: Simples Nacional, Lucro Presumido, Lucro Real, MEI, Autônomo) com valor inicial {REGIME}, Alíquota padrão em % com valor inicial {ALIQUOTA}, Valor hora padrão em R$ e Atendimentos por mês usados como base de rateio.
+7. Faça a alíquota padrão preencher automaticamente o campo de impostos de todo novo cadastro de produto ou serviço.
+8. Crie o painel Resumo do sistema listando a contagem de cada coleção e a data do último backup.
+9. Reaproveite aqui os botões de exportar, importar e limpar dados já implementados na camada de persistência.
+
+PARTE C — GUIA DE USO
+10. Crie um painel lateral deslizante, com 380px de largura e altura total, sobre um fundo escurecido.
+11. Monte a sequência de passos na ordem de dependência real do sistema: Configurações, Folha de Pagamento, Despesas Fixas, Cadastro de produtos e serviços, Precificação Inteligente, Simulação, Ponto de Equilíbrio e Proposta. Cada passo traz ícone, título, explicação do porquê daquela etapa, os campos que precisam ser preenchidos, uma dica prática e um botão que navega direto para o módulo.
+12. Crie os indicadores de progresso em pontos no topo, mais barra de progresso e navegação anterior e próximo no rodapé.
+13. Abra o guia automaticamente no primeiro acesso e ofereça a caixa "Não mostrar ao iniciar", persistindo a escolha. Mantenha o guia acessível a qualquer momento pela sidebar.
+
+CRITÉRIOS DE ACEITE
+- Com o sistema vazio, o Dashboard mostra zeros e alertas em vez de NaN ou de área em branco.
+- Clicar em um alerta de margem baixa abre o módulo de pricing correspondente.
+- Alterar a alíquota nas Configurações muda o valor pré-preenchido do próximo cadastro, sem afetar os já existentes.
+- O guia abre sozinho no primeiro acesso e não reabre depois que a caixa é marcada.
+- Cada botão do guia leva ao módulo certo e fecha o painel.`}
+
+];
+
+/* ══════════════════════════════════════════════
+   ESTADO
+   ══════════════════════════════════════════════ */
+const KEY='goa5_prompts';
+let S={vars:{},done:[],filtro:'all',soPend:false};
+const load=()=>{try{const d=localStorage.getItem(KEY);if(d)S={...S,...JSON.parse(d)}}catch(e){}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const bloco=id=>BLOCOS.find(b=>b.id===id)||{n:id,ico:''};
+// normaliza para busca: minúsculas e sem acento, para 'equilibrio' achar 'equilíbrio'
+const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+function toast(m){const el=document.getElementById('toast');el.textContent=m;el.className='on';clearTimeout(el._t);el._t=setTimeout(()=>el.className='',2400)}
+function scrollTo2(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})}
+
+/* ══════════════════════════════════════════════
+   SUBSTITUIÇÃO DE VARIÁVEIS
+   ══════════════════════════════════════════════ */
+// texto puro, pronto para copiar
+function resolver(txt){
+  return txt.replace(/\{([A-Z_]+)\}/g,(m,k)=>{
+    const v=(S.vars[k]||'').trim();
+    return v||m;
+  });
+}
+// versão com marcação para exibir na tela
+function realcar(txt){
+  let h=esc(txt);
+  // títulos de seção em caixa alta viram destaque
+  h=h.replace(/^([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9 ,.—\-]{3,})$/gm,'<b>$1</b>');
+  h=h.replace(/\{([A-Z_]+)\}/g,(m,k)=>{
+    const v=(S.vars[k]||'').trim();
+    return v?'<v class="f">'+esc(v)+'</v>':'<v>{'+k+'}</v>';
+  });
+  return h;
+}
+
+/* ══════════════════════════════════════════════
+   PAINEL DE VARIÁVEIS
+   ══════════════════════════════════════════════ */
+function buildVars(){
+  document.getElementById('vgrid').innerHTML=VARS.map(v=>
+    '<div class="fld"><label>'+esc(v.l)+' <code>{'+v.k+'}</code></label>'+
+    '<input id="v-'+v.k+'" placeholder="'+esc(v.ph)+'" value="'+esc(S.vars[v.k]||'')+'" oninput="setVar(\''+v.k+'\',this.value)"></div>'
+  ).join('');
+  updVarCount();
+}
+function setVar(k,val){S.vars[k]=val;save();updVarCount();render()}
+function updVarCount(){
+  const n=VARS.filter(v=>(S.vars[v.k]||'').trim()).length;
+  document.getElementById('v-count').textContent=n+'/'+VARS.length+' variáveis';
+}
+function fillDemo(){VARS.forEach(v=>{S.vars[v.k]=v.d});save();buildVars();render();toast('Variáveis de exemplo preenchidas')}
+function clearVars(){S.vars={};save();buildVars();render();toast('Variáveis limpas')}
+
+/* ══════════════════════════════════════════════
+   NAVEGAÇÃO E FILTROS
+   ══════════════════════════════════════════════ */
+function buildNav(){
+  document.getElementById('nav-blocos').innerHTML=
+    '<button class="nv'+(S.filtro==='all'?' on':'')+'" onclick="setFiltro(\'all\')"><span class="dot"></span>Todos os prompts<span class="nvpill">'+PROMPTS.length+'</span></button>'+
+    BLOCOS.map(b=>{
+      const t=PROMPTS.filter(p=>p.b===b.id).length;
+      return '<button class="nv'+(S.filtro===b.id?' on':'')+'" onclick="setFiltro(\''+b.id+'\')"><span class="dot"></span>'+esc(b.ico+' '+b.n)+'<span class="nvpill">'+t+'</span></button>';
+    }).join('');
+}
+function buildTabs(){
+  document.getElementById('tabs').innerHTML=
+    '<button class="tab'+(S.filtro==='all'?' on':'')+'" onclick="setFiltro(\'all\')">Todos <i>'+PROMPTS.length+'</i></button>'+
+    BLOCOS.map(b=>{
+      const t=PROMPTS.filter(p=>p.b===b.id).length;
+      return '<button class="tab'+(S.filtro===b.id?' on':'')+'" onclick="setFiltro(\''+b.id+'\')">'+esc(b.n)+' <i>'+t+'</i></button>';
+    }).join('');
+}
+function setFiltro(f){S.filtro=f;save();buildNav();buildTabs();render()}
+function togglePend(){
+  S.soPend=!S.soPend;save();
+  document.getElementById('btn-pend').textContent=S.soPend?'Mostrar todos':'Mostrar só pendentes';
+  render();
+}
+
+/* ══════════════════════════════════════════════
+   PROGRESSO
+   ══════════════════════════════════════════════ */
+function updProg(){
+  const n=S.done.length,t=PROMPTS.length,pc=t?n/t*100:0;
+  document.getElementById('sp-v').textContent=n+' / '+t;
+  document.getElementById('sp-b').style.width=pc.toFixed(1)+'%';
+  document.getElementById('hs-done').textContent=n;
+}
+function toggleDone(n,ev){
+  if(ev)ev.stopPropagation();
+  const i=S.done.indexOf(n);
+  if(i>=0)S.done.splice(i,1);else S.done.push(n);
+  save();updProg();render();
+  toast(i>=0?'Prompt '+String(n).padStart(2,'0')+' reaberto':'Prompt '+String(n).padStart(2,'0')+' marcado como executado');
+}
+function resetProg(){
+  if(!confirm('Zerar o progresso dos 15 prompts?'))return;
+  S.done=[];save();updProg();render();toast('Progresso zerado');
+}
+
+/* ══════════════════════════════════════════════
+   RENDER DA LISTA
+   ══════════════════════════════════════════════ */
+let abertos=[];
+function toggleCard(n){
+  const i=abertos.indexOf(n);
+  if(i>=0)abertos.splice(i,1);else abertos.push(n);
+  render();
+}
+function render(){
+  const q=norm((document.getElementById('q').value||'').trim());
+  let lista=PROMPTS.slice();
+  if(S.filtro!=='all')lista=lista.filter(p=>p.b===S.filtro);
+  if(S.soPend)lista=lista.filter(p=>S.done.indexOf(p.n)<0);
+  if(q)lista=lista.filter(p=>norm(p.t+' '+p.q+' '+p.tags.join(' ')+' '+bloco(p.b).n+' '+p.p).includes(q));
+
+  const el=document.getElementById('lista');
+  if(!lista.length){el.innerHTML='<div class="empty">Nenhum prompt encontrado com esse filtro.</div>';return}
+
+  el.innerHTML=lista.map(p=>{
+    const done=S.done.indexOf(p.n)>=0, open=abertos.indexOf(p.n)>=0, b=bloco(p.b);
+    const nv=(p.p.match(/\{[A-Z_]+\}/g)||[]).filter((v,i,a)=>a.indexOf(v)===i).length;
+    return '<div class="pcard'+(done?' done':'')+(open?' open':'')+'">'+
+      '<div class="phd" onclick="toggleCard('+p.n+')">'+
+        '<div class="pnum">'+(done?'✓':String(p.n).padStart(2,'0'))+'</div>'+
+        '<div class="pmeta">'+
+          '<div class="pblk">['+String(p.n).padStart(2,'0')+'] '+esc(b.ico+' '+b.n)+'</div>'+
+          '<div class="ptitle">'+esc(p.t)+'</div>'+
+          '<div class="pquote">"'+esc(p.q)+'"</div>'+
+          '<div class="ptags">'+p.tags.map(t=>'<span class="tg">'+esc(t)+'</span>').join('')+
+            '<span class="tg gd">Variáveis: '+nv+'</span>'+
+            (done?'<span class="tg gr">Executado</span>':'')+
+          '</div>'+
+        '</div>'+
+        '<div class="pact">'+
+          '<span class="pchev">'+(open?'▴ fechar':'▾ usar prompt')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="pbody">'+
+        '<div class="pbody-hd"><span>Prompt executável — pronto para colar</span>'+
+          '<button class="btn btn-ol btn-xs" onclick="copiar('+p.n+')">⧉ Copiar</button></div>'+
+        '<pre class="ptext">'+realcar(p.p)+'</pre>'+
+        '<div class="pfoot">'+
+          '<button class="btn btn-gd btn-sm" onclick="copiar('+p.n+')">⧉ Copiar prompt</button>'+
+          '<button class="btn '+(done?'btn-ol':'btn-dk')+' btn-sm" onclick="toggleDone('+p.n+',event)">'+(done?'↺ Reabrir':'✓ Marcar como executado')+'</button>'+
+          '<button class="btn btn-ol btn-sm" onclick="baixar('+p.n+')">⬇ .md</button>'+
+          '<span class="hint">'+(nv?nv+' variável(is) neste prompt':'Sem variáveis')+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════
+   COPIAR / EXPORTAR
+   ══════════════════════════════════════════════ */
+function textoDe(p){return resolver(p.p)}
+function copiar(n){
+  const p=PROMPTS.find(x=>x.n===n);if(!p)return;
+  const txt=textoDe(p);
+  const ok=()=>toast('Prompt '+String(n).padStart(2,'0')+' copiado');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(ok).catch(()=>fallback(txt,ok));
+  }else fallback(txt,ok);
+}
+function fallback(txt,ok){
+  const ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');ok()}catch(e){toast('Não foi possível copiar')}
+  document.body.removeChild(ta);
+}
+function dl(nome,conteudo){
+  const b=new Blob([conteudo],{type:'text/markdown;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=nome;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function baixar(n){
+  const p=PROMPTS.find(x=>x.n===n);if(!p)return;
+  dl('prompt-'+String(n).padStart(2,'0')+'.md',
+    '# '+String(n).padStart(2,'0')+' — '+p.t+'\n\n> '+p.q+'\n\n**Bloco:** '+bloco(p.b).n+'\n\n---\n\n'+textoDe(p)+'\n');
+  toast('Prompt '+String(n).padStart(2,'0')+' baixado');
+}
+function expAll(){
+  let md='# '+(S.vars.EMPRESA||'GO On AGRO')+' — Biblioteca de Prompts v5\n\n'+
+    PROMPTS.length+' prompts executáveis, organizados em '+BLOCOS.length+' blocos.\n\n';
+  md+='## Variáveis\n\n'+VARS.map(v=>'- `{'+v.k+'}` — '+v.l+(S.vars[v.k]?': '+S.vars[v.k]:' _(não preenchida)_')).join('\n')+'\n\n';
+  BLOCOS.forEach(b=>{
+    md+='\n---\n\n# '+b.ico+' '+b.n+'\n\n_'+b.desc+'_\n';
+    PROMPTS.filter(p=>p.b===b.id).forEach(p=>{
+      md+='\n## '+String(p.n).padStart(2,'0')+' — '+p.t+'\n\n> "'+p.q+'"\n\n'+textoDe(p)+'\n';
+    });
+  });
+  dl('goa-v5-prompts.md',md);
+  toast('Biblioteca exportada em Markdown');
+}
+
+/* ══════════════════════════════════════════════
+   BOOT
+   ══════════════════════════════════════════════ */
+load();
+buildVars();buildNav();buildTabs();updProg();
+document.getElementById('btn-pend').textContent=S.soPend?'Mostrar todos':'Mostrar só pendentes';
+render();
+
+// expõe o que os handlers inline usam
+Object.assign(window,{setVar,fillDemo,clearVars,setFiltro,togglePend,toggleCard,toggleDone,resetProg,copiar,baixar,expAll,render,scrollTo2});
+})();
+</script>
+</body>
+</html>

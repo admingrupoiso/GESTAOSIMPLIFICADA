@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GO On AGRO — Precificação Inteligente</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Mulish:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f3ee;--s0:#fff;--s1:#f2efe9;--s2:#ebe8e0;--s3:#e0dbd0;
+  --ink:#1a1810;--ink2:#5a5648;--ink3:#9a9282;
+  --gold:#b8902a;--gold2:#c9a84c;--gold3:#e8c86a;--goldbg:#fdf8ec;--goldbr:rgba(200,168,76,.28);
+  --dark:#1a1810;--dark2:#2d2b22;
+  --green:#276626;--greenbg:#edf7ec;--greenbr:rgba(39,102,38,.22);
+  --red:#b02828;--redbg:#fceaea;--redbr:rgba(176,40,40,.22);
+  --amb:#9a5800;--ambbg:#fff3dc;--ambbr:rgba(154,88,0,.22);
+  --bdr:#ddd8cc;--bdr2:#ccc5b5;
+  --r:10px;--r2:16px;--r3:22px;
+  --sh:0 1px 3px rgba(26,24,16,.07),0 4px 14px rgba(26,24,16,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Mulish',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.55}
+input,select,textarea,button{font-family:'Mulish',sans-serif}
+.app{display:flex;min-height:100vh}
+.sidebar{width:224px;background:var(--dark);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:200}
+.main{margin-left:224px;flex:1;min-width:0;display:flex;flex-direction:column}
+.brand{padding:1.2rem 1rem .9rem;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand-logo{font-family:'DM Serif Display',serif;font-size:1.28rem;color:var(--gold3);letter-spacing:-.01em;line-height:1.1}
+.brand-sub{font-size:.58rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-top:3px}
+.nav-sec{padding:.8rem .85rem .18rem;font-size:.57rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.22)}
+.nv{display:flex;align-items:center;gap:8px;margin:1px .4rem;padding:.5rem .75rem;border-radius:8px;font-size:.81rem;font-weight:600;color:rgba(255,255,255,.52);cursor:pointer;transition:all .13s;border:none;background:none;width:calc(100% - .8rem);text-align:left}
+.nv:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
+.nv.on{background:var(--gold2);color:var(--dark);font-weight:800}
+.nv .dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.18);flex-shrink:0}
+.nv.on .dot{background:rgba(26,24,16,.35)}
+.nvpill{margin-left:auto;font-size:.6rem;font-weight:800;padding:1px 6px;border-radius:99px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.38)}
+.nv.on .nvpill{background:rgba(26,24,16,.2);color:var(--dark)}
+.nav-sim{display:flex;align-items:center;gap:8px;margin:6px .4rem;padding:.58rem .75rem;border-radius:10px;font-size:.81rem;font-weight:800;color:var(--dark);cursor:pointer;background:var(--gold3);width:calc(100% - .8rem);border:none;transition:all .13s}
+.nav-sim:hover{background:var(--gold2)}
+.sfooter{margin-top:auto;padding:.9rem 1rem;border-top:1px solid rgba(255,255,255,.07);font-size:.66rem;color:rgba(255,255,255,.22);line-height:1.6}
+.sfooter b{color:var(--gold3)}
+.topbar{background:var(--s0);border-bottom:1px solid var(--bdr);padding:.85rem 1.6rem;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh);position:sticky;top:0;z-index:100}
+.topbar h1{font-family:'DM Serif Display',serif;font-size:1.08rem;font-weight:400;color:var(--ink)}
+.topbar p{font-size:.7rem;color:var(--ink3);margin-top:1px}
+.topbar-r{display:flex;gap:6px}
+.page{display:none;padding:1.6rem;animation:fi .17s ease}
+.page.on{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--s0);border:1px solid var(--bdr);border-radius:var(--r2);padding:1.2rem;margin-bottom:.9rem;box-shadow:var(--sh)}
+.chd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+.ct{font-family:'DM Serif Display',serif;font-size:.95rem;font-weight:400;color:var(--ink);display:flex;align-items:center;gap:7px}
+.ct::before{content:'';width:3px;height:15px;background:var(--gold2);border-radius:2px;flex-shrink:0}
+.hero{background:var(--goldbg);border:1px solid var(--goldbr);border-radius:var(--r2);padding:1rem 1.3rem;margin-bottom:1.2rem;cursor:pointer;transition:border-color .18s}
+.hero:hover{border-color:var(--gold2)}
+.hero-in{display:flex;gap:1rem;align-items:flex-start}
+.hero-ico{font-size:20px;flex-shrink:0;margin-top:1px;width:26px;text-align:center}
+.hero-title{font-family:'DM Serif Display',serif;font-size:.98rem;color:var(--ink);margin-bottom:.18rem}
+.hero-body{font-size:.79rem;color:var(--ink2);line-height:1.65}
+.hero-steps{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.6rem}
+.hs{background:var(--dark);color:var(--gold3);border-radius:6px;padding:.2rem .6rem;font-size:.68rem;font-weight:700;white-space:nowrap}
+.hero-tog{font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);flex-shrink:0;margin-top:1px}
+.hero.collapsed .hero-body,.hero.collapsed .hero-steps{display:none}
+.iw{position:relative;display:inline-flex;align-items:center}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--ink3);color:#fff;font-size:.62rem;font-weight:800;cursor:pointer;flex-shrink:0;transition:background .13s;border:none;vertical-align:middle;margin-left:3px}
+.ib:hover{background:var(--gold2)}
+.tt{display:none;position:absolute;left:19px;top:-5px;background:var(--dark2);color:#fff;border-radius:9px;padding:.65rem .85rem;font-size:.74rem;line-height:1.6;width:230px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.tt::before{content:'';position:absolute;left:-5px;top:11px;border:5px solid transparent;border-right-color:var(--dark2);border-left:none}
+.ib:hover + .tt,.tt:hover{display:block}
+.kgrid{display:grid;gap:.85rem;margin-bottom:1.1rem}
+.kpi{background:var(--s0);border:1px solid var(--bdr);border-radius:var(--r);padding:.9rem 1rem;box-shadow:var(--sh)}
+.kpi.dk{background:var(--dark);border-color:var(--dark)}
+.kpi.dk .klbl{color:rgba(255,255,255,.4)}
+.kpi.dk .kval{color:var(--gold3)}
+.kpi.gd{background:var(--goldbg);border-color:var(--goldbr)}
+.kpi.gd .klbl,.kpi.gd .kval{color:var(--gold)}
+.kpi.gr{background:var(--greenbg);border-color:var(--greenbr)}
+.kpi.gr .klbl,.kpi.gr .kval{color:var(--green)}
+.klbl{font-size:.6rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.kval{font-family:'DM Serif Display',serif;font-size:1.45rem;font-weight:400;line-height:1;color:var(--ink)}
+.ksub{font-size:.68rem;color:var(--ink3);margin-top:3px}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:.46rem .95rem;border-radius:7px;font-size:.77rem;font-weight:700;cursor:pointer;border:none;transition:all .13s;white-space:nowrap}
+.btn-dk{background:var(--dark);color:#fff}.btn-dk:hover{background:var(--dark2)}
+.btn-gd{background:var(--gold2);color:var(--dark)}.btn-gd:hover{background:var(--gold3)}
+.btn-ol{background:transparent;border:1px solid var(--bdr2);color:var(--ink2)}.btn-ol:hover{background:var(--s1);color:var(--ink)}
+.btn-gr{background:var(--green);color:#fff}
+.btn-rd{background:var(--red);color:#fff}
+.btn-sim{background:var(--dark);color:var(--gold3);font-weight:800}.btn-sim:hover{background:var(--dark2)}
+.btn-sm{padding:.3rem .7rem;font-size:.71rem}
+.btn-xs{padding:.18rem .5rem;font-size:.67rem}
+.bic{background:transparent;border:1px solid var(--bdr);border-radius:6px;padding:.27rem .5rem;cursor:pointer;color:var(--ink3);font-size:.74rem;transition:all .13s}
+.bic:hover{background:var(--s1);color:var(--gold)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld label{font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);display:flex;align-items:center;gap:2px}
+.fld input,.fld select,.fld textarea{padding:.48rem .78rem;border:1px solid var(--bdr);border-radius:7px;background:var(--s0);color:var(--ink);font-size:.85rem;font-weight:500;outline:none;width:100%;transition:border .13s,box-shadow .13s}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--gold2);box-shadow:0 0 0 3px rgba(200,168,76,.1)}
+.fld textarea{resize:vertical;min-height:66px}
+.fld .note{font-size:.62rem;color:var(--ink3);margin-top:1px}
+.lnk{color:var(--gold);font-size:.6rem;font-weight:800;cursor:pointer;letter-spacing:.02em}
+.lnk:hover{color:var(--gold2)}
+.sep{border:none;border-top:1px solid var(--bdr);margin:.85rem 0}
+.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--bdr)}
+table{width:100%;border-collapse:collapse;font-size:.79rem}
+thead th{background:var(--s1);color:var(--ink3);padding:.48rem .8rem;text-align:left;font-size:.58rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--bdr);white-space:nowrap}
+th.r{text-align:right}th.c{text-align:center}
+tbody td{padding:.58rem .8rem;border-bottom:1px solid var(--bdr);color:var(--ink2);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--s1)}
+td.r{text-align:right;font-weight:700;color:var(--ink)}
+td.c{text-align:center}
+td.gd{color:var(--gold)!important;font-weight:800}
+td.gr{color:var(--green)!important;font-weight:700}
+td.rd{color:var(--red)!important;font-weight:700}
+tfoot td{padding:.5rem .8rem;background:var(--dark);color:var(--gold3);border-top:1px solid var(--bdr2);font-weight:700;font-size:.8rem}
+tfoot td.r{color:var(--gold3)}
+.badge{display:inline-flex;align-items:center;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:99px}
+.bgd{background:var(--goldbg);color:var(--gold);border:1px solid var(--goldbr)}
+.bgr{background:var(--greenbg);color:var(--green);border:1px solid var(--greenbr)}
+.brd{background:var(--redbg);color:var(--red);border:1px solid var(--redbr)}
+.bam{background:var(--ambbg);color:var(--amb);border:1px solid var(--ambbr)}
+.bgry{background:var(--s1);color:var(--ink2);border:1px solid var(--bdr)}
+.bdk{background:var(--dark);color:var(--gold3)}
+.ov{display:none;position:fixed;inset:0;background:rgba(26,24,16,.45);z-index:500;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px)}
+.ov.on{display:flex}
+.modal{background:var(--s0);border:1px solid var(--bdr);border-radius:var(--r3);padding:1.65rem;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.mhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;padding-bottom:.9rem;border-bottom:1px solid var(--bdr)}
+.mtitle{font-family:'DM Serif Display',serif;font-size:1.08rem;color:var(--ink)}
+.mc{background:none;border:none;cursor:pointer;font-size:.95rem;color:var(--ink3);padding:3px;transition:color .13s}
+.mc:hover{color:var(--ink)}
+.mft{display:flex;justify-content:flex-end;gap:7px;margin-top:1.1rem;padding-top:.9rem;border-top:1px solid var(--bdr)}
+.slrow{display:flex;align-items:center;gap:10px;margin-top:5px}
+.slrow input[type=range]{flex:1;accent-color:var(--dark)}
+.slval{font-weight:800;font-size:.92rem;color:var(--dark);min-width:44px;text-align:right}
+.rrow{display:flex;justify-content:space-between;align-items:center;padding:.38rem 0;border-bottom:1px solid var(--bdr)}
+.rrow:last-child{border-bottom:none}
+.rrow.hi{border-top:2px solid var(--dark);padding-top:.6rem;margin-top:.35rem}
+.rl{font-size:.79rem;color:var(--ink3)}
+.rv{font-weight:700;font-size:.84rem;color:var(--ink)}
+.rrow.hi .rl{font-weight:700;color:var(--ink);font-size:.84rem}
+.rrow.hi .rv{font-family:'DM Serif Display',serif;font-size:1.22rem;color:var(--gold)}
+.pbar{height:5px;background:var(--s2);border-radius:99px;overflow:hidden}
+.pfill{height:100%;border-radius:99px;transition:width .4s}
+.dica{background:var(--goldbg);border:1px solid var(--goldbr);border-radius:var(--r);padding:.8rem 1rem;font-size:.77rem;color:var(--ink2);line-height:1.65}
+.ibox{border-radius:var(--r);padding:.72rem .95rem;font-size:.79rem;border:1px solid;margin-bottom:.7rem}
+.ibox.gr{background:var(--greenbg);border-color:var(--greenbr);color:var(--green)}
+.ibox.rd{background:var(--redbg);border-color:var(--redbr);color:var(--red)}
+.ibox.am{background:var(--ambbg);border-color:var(--ambbr);color:var(--amb)}
+.ibox.gd{background:var(--goldbg);border-color:var(--goldbr);color:var(--gold)}
+.enc-row{display:flex;justify-content:space-between;align-items:center;padding:.28rem 0;font-size:.79rem}
+.enc-sub{background:var(--goldbg);border-top:1px solid var(--goldbr);padding:.38rem .85rem;display:flex;justify-content:space-between;font-size:.77rem;font-weight:800;color:var(--gold)}
+.enc-tot{background:var(--dark);padding:.5rem .85rem;display:flex;justify-content:space-between;font-size:.81rem;font-weight:800;color:var(--gold3)}
+.pdoc{background:#fff;border:1px solid #e5e0d5;border-radius:var(--r2);padding:2.6rem;font-size:.87rem;line-height:1.75;box-shadow:var(--sh)}
+.pdoc-brand{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:1rem;margin-bottom:.8rem;border-bottom:3px solid var(--dark)}
+.pdoc-logo{font-family:'DM Serif Display',serif;font-size:1.9rem;color:var(--dark)}
+.pdoc-tag{font-size:.58rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-top:3px}
+.pdoc-num .nl{font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#888}
+.pdoc-num .nv{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--gold2)}
+.pdoc-sub{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold2);margin-bottom:1.4rem}
+.pdoc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;background:#f7f4ee;border-radius:9px;padding:.9rem;margin-bottom:1.4rem}
+.pml{font-size:.58rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:2px}
+.pmv{font-weight:700;font-size:.83rem}
+.pdoc h3{font-family:'DM Serif Display',serif;font-size:.95rem;font-weight:400;color:var(--dark);margin:1.4rem 0 .5rem;padding-bottom:.38rem;border-bottom:2px solid var(--dark)}
+.pdoc table{width:100%;border-collapse:collapse;font-size:.82rem}
+.pdoc table th{background:var(--dark);color:var(--gold3);padding:.48rem .88rem;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.pdoc table td{padding:.55rem .88rem;border-bottom:1px solid #e5e0d5}
+.pdoc .ptot-wrap{display:flex;justify-content:flex-end;margin-top:.9rem}
+.pdoc .ptot{background:var(--dark);color:var(--gold3);border-radius:9px;padding:.65rem 1.4rem;font-family:'DM Serif Display',serif;font-size:1.35rem}
+.pdoc .pconds{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:.75rem 0}
+.pdoc .pcl{font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#888}
+.pdoc .pcv{font-weight:700;margin-top:2px;font-size:.83rem}
+.pdoc .pfoot{border-top:1px solid #e5e0d5;padding-top:.9rem;margin-top:1.8rem;font-size:.7rem;color:#888}
+#toast{position:fixed;bottom:1.4rem;right:1.4rem;z-index:999;background:var(--dark);color:#fff;border-radius:9px;padding:.62rem 1rem;font-size:.77rem;font-weight:700;transform:translateY(55px);opacity:0;transition:all .21s;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.18)}
+#toast.on{transform:translateY(0);opacity:1}
+#toast.ok{background:var(--green)}
+#toast.gd{background:var(--gold2);color:var(--dark)}
+@media(max-width:800px){.sidebar{display:none}.main{margin-left:0}.g2,.g3,.kgrid{grid-template-columns:1fr}}
+@media print{.sidebar,.topbar,.btn,.ov,#toast{display:none!important}.main{margin:0}.page{padding:0}.pdoc{box-shadow:none;border:none}}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<!-- MODAIS -->
+<div class="ov" id="m-rev"><div class="modal">
+  <div class="mhd"><div class="mtitle" id="m-rev-t">Produto para Revenda</div><button class="mc" onclick="cm('m-rev')">✕</button></div>
+  <div class="g2">
+    <div class="fld" style="grid-column:1/-1"><label>Descrição*</label><input id="cr_desc" placeholder="Ex: Sal mineral bovino 25kg"></div>
+    <div class="fld"><label>Fornecedor</label><input id="cr_forn"></div>
+    <div class="fld"><label>Qtd por Embalagem</label><input id="cr_qtd" type="number" value="1" min="1" step="1"></div>
+    <div class="fld"><label>Unidade de Medida</label><select id="cr_um"><option>Un.</option><option>Kg</option><option>g</option><option>L</option><option>mL</option><option>m</option><option>Pacote</option><option>Caixa</option><option>Saco</option><option>Outro</option></select></div>
+    <div class="fld"><label>Preço por Un. de Medida (R$) <span class="iw"><button class="ib">i</button><div class="tt">Custo unitário do produto junto ao fornecedor, antes de qualquer encargo ou frete.</div></span></label><input id="cr_preco" type="number" value="0" min="0" step="0.01"></div>
+    <div class="fld"><label>Frete (R$)</label><input id="cr_frete" type="number" value="0" min="0" step="0.01"></div>
+    <div class="fld"><label>Impostos s/ Venda (%) <span class="iw"><button class="ib">i</button><div class="tt">% do preço de venda que vai para impostos. Ex: Simples Nacional ≈ 6%, MEI ≈ 5%.</div></span></label><input id="cr_imp" type="number" value="6" min="0" step="0.5"></div>
+    <div class="fld"><label>Taxa Máquina Cartão (%)</label><input id="cr_maq" type="number" value="0" min="0" step="0.1"></div>
+    <div class="fld"><label>Taxa Aplicativo (%)</label><input id="cr_aplic" type="number" value="0" min="0" step="0.5"></div>
+    <div class="fld"><label>Comissão sobre Vendas (%)</label><input id="cr_com" type="number" value="0" min="0" step="0.5"></div>
+    <div class="fld"><label>Preço de Venda Atual (R$) <span class="iw"><button class="ib">i</button><div class="tt">O preço que você cobra hoje. É a base de toda a análise — o sistema calcula se este preço é saudável ou não.</div></span></label><input id="cr_pva" type="number" value="0" min="0" step="0.01"></div>
+  </div>
+  <div class="mft"><button class="btn btn-ol" onclick="cm('m-rev')">Cancelar</button><button class="btn btn-dk" onclick="sv_rev()">Salvar</button></div>
+</div></div>
+
+<div class="ov" id="m-serv"><div class="modal">
+  <div class="mhd"><div class="mtitle" id="m-serv-t">Serviço / Produto Próprio</div><button class="mc" onclick="cm('m-serv')">✕</button></div>
+  <div class="g2">
+    <div class="fld" style="grid-column:1/-1"><label>Descrição*</label><input id="cs_desc" placeholder="Ex: Consultoria Nutricional — Gado de Corte"></div>
+    <div class="fld"><label>Categoria</label><select id="cs_cat"><option>Consultoria</option><option>Análise Técnica</option><option>Visita Técnica</option><option>Treinamento</option><option>Mentoria</option><option>Palestra</option><option>Formulação de Dieta</option><option>Plano Nutricional</option><option>Planejamento</option><option>Protocolo Sanitário</option><option>Assessoria Online</option><option>Outro</option></select></div>
+    <div class="fld"><label>Unidade</label><select id="cs_und"><option>Hora</option><option>Sessão</option><option>Visita</option><option>Projeto</option><option>Mês</option><option>Relatório</option><option>Ha</option><option>Un.</option><option>Outro</option></select></div>
+    <div class="fld"><label>CMV / Mat.-Prima (R$) <span class="iw"><button class="ib">i</button><div class="tt">Custo da Mercadoria Vendida: insumos, materiais, ingredientes usados diretamente na entrega do serviço.</div></span></label><input id="cs_cmv" type="number" value="0" step="0.01"></div>
+    <div class="fld"><label>Custo MO Direta (R$) <span class="iw"><button class="ib">i</button><div class="tt">Mão de Obra Direta: custo do tempo dedicado especificamente a este serviço. Horas × valor/hora do profissional.</div></span></label><input id="cs_mo" type="number" value="0" step="0.01"></div>
+    <div class="fld"><label>Frete / Deslocamento (R$)</label><input id="cs_frete" type="number" value="0" step="0.01"></div>
+    <div class="fld"><label>Impostos s/ Venda (%)</label><input id="cs_imp" type="number" value="6" step="0.5"></div>
+    <div class="fld"><label>Taxa Máquina Cartão (%)</label><input id="cs_maq" type="number" value="0" step="0.1"></div>
+    <div class="fld"><label>Taxa Aplicativo (%)</label><input id="cs_aplic" type="number" value="0" step="0.5"></div>
+    <div class="fld"><label>Comissão sobre Vendas (%)</label><input id="cs_com" type="number" value="0" step="0.5"></div>
+    <div class="fld"><label>Preço de Venda Atual (R$) <span class="iw"><button class="ib">i</button><div class="tt">O preço que você cobra hoje por este serviço. Ponto de partida de toda a análise.</div></span></label><input id="cs_pva" type="number" value="0" step="0.01"></div>
+    <div class="fld" style="grid-column:1/-1"><label>Escopo / O que inclui</label><textarea id="cs_esc" placeholder="Descreva o que está incluído neste serviço..."></textarea></div>
+  </div>
+  <div class="mft"><button class="btn btn-ol" onclick="cm('m-serv')">Cancelar</button><button class="btn btn-dk" onclick="sv_serv()">Salvar</button></div>
+</div></div>
+
+<div class="ov" id="m-func"><div class="modal" style="max-width:640px">
+  <div class="mhd"><div class="mtitle" id="m-func-t">Colaborador / Funcionário</div><button class="mc" onclick="cm('m-func')">✕</button></div>
+  <div class="g3">
+    <div class="fld" style="grid-column:1/3"><label>Nome Completo*</label><input id="ff_nome"></div>
+    <div class="fld"><label>Vínculo</label><select id="ff_tipo"><option value="clt">CLT</option><option value="pj">Prestador PJ</option><option value="socio">Sócio/Pró-Labore</option><option value="est">Estagiário</option></select></div>
+    <div class="fld"><label>Cargo</label><input id="ff_cargo" placeholder="Ex: Zootecnista"></div>
+    <div class="fld"><label>Setor</label><input id="ff_setor" placeholder="Ex: Campo"></div>
+    <div class="fld"><label>Data de Contratação</label><input id="ff_data" type="date"></div>
+    <div class="fld"><label>Salário Bruto (R$)</label><input id="ff_sal" type="number" value="3000" step="1" oninput="pvFunc()"></div>
+    <div class="fld"><label>Carga Horária/Mês (h)</label><input id="ff_ch" type="number" value="220" step="1"></div>
+    <div class="fld"><label>Vale Transporte (R$)</label><input id="ff_vt" type="number" value="0" step="1" oninput="pvFunc()"></div>
+    <div class="fld"><label>Vale Refeição (R$)</label><input id="ff_vr" type="number" value="0" step="1" oninput="pvFunc()"></div>
+    <div class="fld"><label>Convênio Médico (R$)</label><input id="ff_cv" type="number" value="0" step="1" oninput="pvFunc()"></div>
+  </div>
+  <div id="f-prev" style="margin-top:.9rem;background:var(--s1);border-radius:var(--r);padding:.8rem;display:grid;grid-template-columns:repeat(4,1fr);gap:.55rem"></div>
+  <div class="mft"><button class="btn btn-ol" onclick="cm('m-func')">Cancelar</button><button class="btn btn-dk" onclick="sv_func()">Salvar</button></div>
+</div></div>
+
+<div class="ov" id="m-desp"><div class="modal">
+  <div class="mhd"><div class="mtitle" id="m-desp-t">Despesa Fixa</div><button class="mc" onclick="cm('m-desp')">✕</button></div>
+  <div class="g2">
+    <div class="fld" style="grid-column:1/-1"><label>Descrição*</label><input id="dd_desc" placeholder="Ex: Aluguel do escritório"></div>
+    <div class="fld"><label>Valor Mensal (R$)*</label><input id="dd_val" type="number" value="0" step="0.01"></div>
+  </div>
+  <div class="mft"><button class="btn btn-ol" onclick="cm('m-desp')">Cancelar</button><button class="btn btn-dk" onclick="sv_desp()">Salvar</button></div>
+</div></div>
+
+<div class="ov" id="m-cli"><div class="modal">
+  <div class="mhd"><div class="mtitle" id="m-cli-t">Cliente / Produtor</div><button class="mc" onclick="cm('m-cli')">✕</button></div>
+  <div class="g2">
+    <div class="fld"><label>Nome / Fazenda*</label><input id="cl_nome"></div>
+    <div class="fld"><label>Responsável</label><input id="cl_resp"></div>
+    <div class="fld"><label>E-mail</label><input id="cl_email" type="email"></div>
+    <div class="fld"><label>Telefone</label><input id="cl_tel"></div>
+    <div class="fld"><label>Cidade / Estado</label><input id="cl_cid"></div>
+    <div class="fld"><label>Atividade</label><select id="cl_seg"><option>Gado de Corte</option><option>Gado de Leite</option><option>Misto</option><option>Suinocultura</option><option>Avicultura</option><option>Agricultura</option><option>Outro</option></select></div>
+    <div class="fld" style="grid-column:1/-1"><label>Observações</label><textarea id="cl_obs" rows="2"></textarea></div>
+  </div>
+  <div class="mft"><button class="btn btn-ol" onclick="cm('m-cli')">Cancelar</button><button class="btn btn-dk" onclick="sv_cli()">Salvar</button></div>
+</div></div>
+
+<!-- MODAL: Selecionar item do cadastro para proposta -->
+<div class="ov" id="m-sel-item"><div class="modal" style="max-width:520px">
+  <div class="mhd">
+    <div class="mtitle">Selecionar do Cadastro</div>
+    <button class="mc" onclick="cm('m-sel-item')">✕</button>
+  </div>
+  <div style="margin-bottom:.75rem">
+    <input id="m-sel-busca" type="text" placeholder="Buscar produto ou serviço..." oninput="filtrarSelItem()"
+      style="width:100%;padding:.5rem .85rem;border:1px solid var(--bdr);border-radius:8px;font-size:.85rem;outline:none;color:var(--ink);background:var(--s0)">
+  </div>
+  <div id="m-sel-lista" style="display:flex;flex-direction:column;gap:4px;max-height:380px;overflow-y:auto"></div>
+  <div class="mft"><button class="btn btn-ol" onclick="cm('m-sel-item')">Fechar</button></div>
+</div></div>
+
+<!-- APP -->
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-logo">GO On AGRO</div><div class="brand-sub">Precificação Inteligente</div></div>
+  <div class="nav-sec">Início</div>
+  <button class="nv on" onclick="nav('dash',this)"><span class="dot"></span>Dashboard</button>
+  <div class="nav-sec">1. Cadastros</div>
+  <button class="nv" onclick="nav('cad-rev',this)"><span class="dot"></span>Produtos Revenda<span class="nvpill" id="p-rev">0</span></button>
+  <button class="nv" onclick="nav('cad-serv',this)"><span class="dot"></span>Serviços / Produtos<span class="nvpill" id="p-serv">0</span></button>
+  <button class="nv" onclick="nav('folha',this)"><span class="dot"></span>Folha de Pagamento<span class="nvpill" id="p-func">0</span></button>
+  <button class="nv" onclick="nav('desps',this)"><span class="dot"></span>Despesas Fixas<span class="nvpill" id="p-desp">0</span></button>
+  <button class="nv" onclick="nav('clis',this)"><span class="dot"></span>Clientes<span class="nvpill" id="p-cli">0</span></button>
+  <div class="nav-sec">2. Precificação</div>
+  <button class="nv" onclick="nav('pricing-serv',this)"><span class="dot"></span>Pricing — Serviços</button>
+  <button class="nv" onclick="nav('pricing-rev',this)"><span class="dot"></span>Pricing — Revenda</button>
+  <div style="padding:.4rem .4rem .2rem">
+    <button class="nav-sim" onclick="nav('sim',null)"><span style="width:5px;height:5px;border-radius:50%;background:rgba(26,24,16,.3);flex-shrink:0"></span>▲ Simular Agora</button>
+  </div>
+  <div class="nav-sec">3. Análises</div>
+  <button class="nv" onclick="nav('sim',this)"><span class="dot"></span>Simulação de Resultados</button>
+  <button class="nv" onclick="nav('analise',this)"><span class="dot"></span>Análise Individual</button>
+  <button class="nv" onclick="nav('pe',this)"><span class="dot"></span>Ponto de Equilíbrio</button>
+  <div class="nav-sec">4. Comercial</div>
+  <button class="nv" onclick="nav('proposta',this)"><span class="dot"></span>Propostas<span class="nvpill" id="p-prop">0</span></button>
+  <button class="nv" onclick="nav('prec-int',this)" style="background:rgba(232,200,106,.12);color:var(--gold3);font-weight:800;border:1px solid rgba(232,200,106,.18);margin-top:4px"><span class="dot" style="background:var(--gold3)"></span>✦ Preços Sugeridos</button>
+  <div class="nav-sec">Sistema</div>
+  <button class="nv" onclick="nav('cfg',this)"><span class="dot"></span>Configurações</button>
+  <button class="nv" onclick="abrirGuia()" style="color:rgba(255,255,255,.42)"><span class="dot"></span>? Guia de Uso</button>
+  <div class="sfooter"><b>GO On AGRO</b><br>Precificação Inteligente v4.0<br>© 2025</div>
+</aside>
+
+<div class="main">
+<div class="topbar">
+  <div><h1 id="tb-t">Dashboard</h1><p id="tb-s">Visão geral do negócio</p></div>
+  <div class="topbar-r">
+    <button class="btn btn-sim btn-sm" onclick="nav('sim',null)">▲ Simular</button>
+    <button class="btn btn-gd btn-sm" onclick="nav('proposta',null)">▣ Nova Proposta</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page on" id="pg-dash">
+  <div class="kgrid" id="dash-kpis" style="grid-template-columns:repeat(4,1fr)"></div>
+  <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:1rem">
+    <div>
+      <div class="card"><div class="ct" style="margin-bottom:1rem">Composição do custo fixo</div><div id="dash-chart" style="display:flex;flex-direction:column;gap:9px"></div></div>
+      <div class="card"><div class="ct" style="margin-bottom:1rem">Últimos produtos precificados</div><div id="dash-pricing"></div></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:.9rem">
+        <div class="ct" style="margin-bottom:1rem">Acesso rápido</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem">
+          <button class="btn btn-dk" onclick="nav('pricing-serv',null)" style="justify-content:center;padding:.7rem;flex-direction:column;gap:3px;font-size:.74rem">◆<br>Pricing Serv.</button>
+          <button class="btn btn-gd" onclick="nav('proposta',null)" style="justify-content:center;padding:.7rem;flex-direction:column;gap:3px;font-size:.74rem">▣<br>Proposta</button>
+          <button class="btn btn-sim" onclick="nav('sim',null)" style="justify-content:center;padding:.7rem;flex-direction:column;gap:3px;font-size:.74rem">▲<br>Simulação</button>
+          <button class="btn btn-ol" onclick="nav('pe',null)" style="justify-content:center;padding:.7rem;flex-direction:column;gap:3px;font-size:.74rem">⚖<br>Pt. Equilíbrio</button>
+        </div>
+      </div>
+      <div class="card"><div class="ct" style="margin-bottom:1rem">Indicadores</div><div id="dash-ind" style="display:flex;flex-direction:column;gap:.45rem"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CAD REVENDA -->
+<div class="page" id="pg-cad-rev">
+  <div class="hero" id="h-cad-rev" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">📦</div>
+      <div style="flex:1">
+        <div class="hero-title">Cadastro de Produtos para Revenda</div>
+        <div class="hero-body">Registre os produtos que você compra de fornecedores e revende. Informe custo de compra, frete e todos os encargos sobre a venda. O Preço de Venda Atual é o ponto de partida — o sistema analisa se ele cobre todos os custos e gera lucro.
+          <div class="hero-steps"><span class="hs">1. Informe custo e frete</span><span class="hs">2. Preencha % de encargos</span><span class="hs">3. Informe preço praticado hoje</span><span class="hs">4. MC calculada automaticamente</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="chd"><div class="ct">Produtos para Revenda</div><button class="btn btn-dk btn-sm" onclick="om_rev()">+ Novo produto</button></div>
+    <div class="tw"><table>
+      <thead><tr><th>Cód</th><th>Produto</th><th>Fornecedor</th><th class="c">Unid.</th><th class="r">Custo unit.</th><th class="r">Frete</th><th class="r">Custo variável</th><th class="r">Desp. variáveis</th><th class="r">Preço praticado</th><th class="r">MC R$</th><th class="r">MC %</th><th></th></tr></thead>
+      <tbody id="tb-rev"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- CAD SERVIÇOS -->
+<div class="page" id="pg-cad-serv">
+  <div class="hero" id="h-cad-serv" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">⚙</div>
+      <div style="flex:1">
+        <div class="hero-title">Cadastro de Serviços / Produtos Próprios</div>
+        <div class="hero-body">Registre seus serviços de consultoria, visitas, formulações e demais produtos próprios. Informe o CMV (matéria-prima), custo de mão de obra direta, frete e % de encargos. O preço praticado hoje é a base da análise — o sistema mostra a MC e indica se o preço está saudável.
+          <div class="hero-steps"><span class="hs">1. Informe CMV, MO e frete</span><span class="hs">2. Preencha % de encargos</span><span class="hs">3. Informe preço praticado hoje</span><span class="hs">4. MC calculada na tabela</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="chd"><div class="ct">Serviços / Produtos Próprios</div><button class="btn btn-dk btn-sm" onclick="om_serv()">+ Novo serviço</button></div>
+    <div class="tw"><table>
+      <thead><tr><th>Cód</th><th>Serviço / Produto</th><th>Cat.</th><th class="c">Unid.</th><th class="r">CMV</th><th class="r">MO Direta</th><th class="r">Frete</th><th class="r">Custo var.</th><th class="r">Desp. var.</th><th class="r">Preço praticado</th><th class="r">MC R$</th><th class="r">MC %</th><th></th></tr></thead>
+      <tbody id="tb-serv"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- FOLHA -->
+<div class="page" id="pg-folha">
+  <div class="hero" id="h-folha" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">👥</div>
+      <div style="flex:1">
+        <div class="hero-title">Folha de Pagamento <span class="iw"><button class="ib">i</button><div class="tt">Encargos CLT são os custos obrigatórios além do salário. Para R$3.000 de salário, o custo real pode chegar a R$4.600+.</div></span></div>
+        <div class="hero-body">Cadastre todos os colaboradores. Para CLT, os encargos Trabalhistas (férias, 13º) e Sociais (INSS, FGTS) são calculados automaticamente com alíquotas editáveis. O custo total da equipe é somado nas Despesas Fixas e rateado proporcionalmente na Simulação.
+          <div class="hero-steps"><span class="hs">Configure as alíquotas</span><span class="hs">Cadastre cada colaborador</span><span class="hs">Total alimenta as Desp. Fixas</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div class="kgrid" id="folha-kpis" style="grid-template-columns:repeat(4,1fr)"></div>
+  <div style="display:grid;grid-template-columns:290px 1fr;gap:1rem;align-items:start">
+    <div class="card">
+      <div class="ct" style="margin-bottom:1rem">Encargos Salariais — CLT <span class="iw"><button class="ib">i</button><div class="tt"><b>Trabalhistas</b>: Férias+30%, 13º — provisões mensais.<br><b>Sociais</b>: INSS 20%, FGTS 8% + rescisão — pagos ao governo.</div></span></div>
+      <div style="border-radius:var(--r);overflow:hidden;border:1px solid var(--bdr)">
+        <div style="background:var(--s1);padding:.42rem .85rem;font-size:.58rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3)">Encargos Trabalhistas</div>
+        <div id="enc-trab" style="padding:.7rem .85rem;display:flex;flex-direction:column;gap:.42rem"></div>
+        <div class="enc-sub"><span>Subtotal Trabalhistas</span><span id="enc-trab-tot">21,77%</span></div>
+        <div style="background:var(--s1);padding:.42rem .85rem;font-size:.58rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3)">Encargos Sociais</div>
+        <div id="enc-soc" style="padding:.7rem .85rem;display:flex;flex-direction:column;gap:.42rem"></div>
+        <div class="enc-sub"><span>Subtotal Sociais</span><span id="enc-soc-tot">32,00%</span></div>
+        <div class="enc-tot"><span>TOTAL DE ENCARGOS (%)</span><span id="enc-tot-lbl">53,77%</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chd"><div class="ct">Equipe — Encargos Salariais</div><button class="btn btn-dk btn-sm" onclick="om_func()">+ Novo</button></div>
+      <div class="tw"><table>
+        <thead><tr><th>Cód</th><th>Nome</th><th>Cargo</th><th>Setor</th><th class="c">Vínculo</th><th>Contratação</th><th class="r">Salário</th><th class="r">Enc. Sociais</th><th class="r">Enc. Trabalhistas</th><th class="r">VT</th><th class="r">VR</th><th class="r">Conv. Médico</th><th class="r">Total</th><th class="r">Valor/hora</th><th></th></tr></thead>
+        <tbody id="tb-func"></tbody>
+        <tfoot id="tb-func-ft"></tfoot>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- DESPESAS -->
+<div class="page" id="pg-desps">
+  <div class="hero" id="h-desps" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">💸</div>
+      <div style="flex:1">
+        <div class="hero-title">Despesas Fixas <span class="iw"><button class="ib">i</button><div class="tt"><b>Despesas Fixas</b> existem todo mês independente de quantos clientes você atende: aluguel, energia, internet, contabilidade. Diferentes dos custos variáveis que crescem com as vendas.</div></span></div>
+        <div class="hero-body">Registre todos os custos fixos mensais. A folha de pagamento já é somada automaticamente. O total fixo mensal é distribuído proporcionalmente entre produtos na Simulação — cada produto carrega fixos na proporção de sua participação no faturamento.
+          <div class="hero-steps"><span class="hs">Folha somada automaticamente</span><span class="hs">Cadastre as demais despesas</span><span class="hs">Total rateado na Simulação</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:1rem;align-items:start">
+    <div class="card">
+      <div class="chd"><div class="ct">Despesas Fixas Mensais</div><button class="btn btn-dk btn-sm" onclick="om_desp()">+ Nova despesa</button></div>
+      <div class="tw"><table>
+        <thead><tr><th>Descrição</th><th class="r">Valor Mensal</th><th class="r">% do Total</th><th></th></tr></thead>
+        <tbody id="tb-desp"></tbody>
+        <tfoot id="tb-desp-ft"></tfoot>
+      </table></div>
+    </div>
+    <div>
+      <div class="card"><div class="ct" style="margin-bottom:1rem">Resumo</div><div id="desp-res"></div></div>
+      <div class="card"><div class="ct" style="margin-bottom:.8rem">Maiores despesas</div><div id="desp-chart" style="display:flex;flex-direction:column;gap:7px;margin-top:.4rem"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENTES -->
+<div class="page" id="pg-clis">
+  <div class="hero" id="h-clis" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">🏡</div>
+      <div style="flex:1">
+        <div class="hero-title">Clientes / Produtores Rurais</div>
+        <div class="hero-body">Mantenha o cadastro dos seus clientes atualizado. Na aba Propostas, basta selecionar o cliente da lista e todos os dados são preenchidos automaticamente.
+          <div class="hero-steps"><span class="hs">Cadastre o cliente</span><span class="hs">Selecione na Proposta</span><span class="hs">Dados preenchidos automaticamente</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="chd"><div class="ct">Clientes / Produtores</div><button class="btn btn-dk btn-sm" onclick="om_cli()">+ Novo cliente</button></div>
+    <div class="tw"><table>
+      <thead><tr><th>Nome / Fazenda</th><th>Responsável</th><th>E-mail</th><th>Telefone</th><th>Cidade</th><th>Atividade</th><th></th></tr></thead>
+      <tbody id="tb-cli"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- PRICING SERVIÇOS -->
+<div class="page" id="pg-pricing-serv">
+  <div class="hero" id="h-pricing-serv" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">◆</div>
+      <div style="flex:1">
+        <div class="hero-title">Tabela de Pricing — Serviços / Produtos Próprios <span class="iw"><button class="ib">i</button><div class="tt"><b>G = Gross (Bruto)</b>: linha com preço cheio praticado.<br><b>N = Net (Líquido)</b>: linha com preço após desconto.<br>MC % abaixo de 20% = sinal de alerta.</div></span></div>
+        <div class="hero-body">Cada serviço aparece em duas linhas: <b>G</b> (preço cheio) e <b>N</b> (com desconto configurável). Para cada uma, veja custos variáveis, todos os encargos detalhados (impostos, máquina, aplicativo, comissão) e a Margem de Contribuição atual. Use a Análise Individual para calcular o Preço Sugerido.
+          <div class="hero-steps"><span class="hs">Dados vêm do Cadastro</span><span class="hs">G = preço cheio · N = c/ desconto</span><span class="hs">Analise a MC de cada produto</span><span class="hs">Use Análise Individual para sugestão</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:.6rem;margin-bottom:1rem;align-items:flex-end;flex-wrap:wrap">
+    <div class="fld" style="margin:0"><label>% Desconto — linha N <span class="iw"><button class="ib">i</button><div class="tt">Desconto aplicado sobre o preço atual para gerar a linha N (Net/Líquido).</div></span></label><input id="ps-desc" type="number" value="0" min="0" max="99" step="0.5" oninput="rdPricingServ()" style="width:90px;padding:.42rem .7rem;border:1px solid var(--bdr);border-radius:7px;background:var(--s0);font-size:.84rem"></div>
+    <button class="btn btn-ol btn-sm" onclick="expPricingServ()">⬇ Exportar CSV</button>
+    <button class="btn btn-dk btn-sm" onclick="nav('analise',null)">🔍 Análise Individual</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tw"><table>
+      <thead><tr>
+        <th>G/N</th><th>Cód</th><th>Produto / Serviço</th>
+        <th class="r">Preço atual</th><th class="r">CMV</th><th class="r">MO Direta</th><th class="r">Frete</th>
+        <th class="r">Custo Var. R$</th><th class="r">Custo Var. %</th>
+        <th class="r">Impostos R$</th><th class="r">Imp. %</th>
+        <th class="r">Tx. Máquina R$</th><th class="r">TM %</th>
+        <th class="r">Tx. Aplicativo R$</th><th class="r">TA %</th>
+        <th class="r">Comissão R$</th><th class="r">Com. %</th>
+        <th class="r">Desp. Var. R$</th><th class="r">DV %</th>
+        <th class="r">MC R$</th><th class="r">MC %</th>
+        <th class="r">CPV/CSV R$</th><th class="r">CPV %</th>
+        <th class="r">MO R$</th><th class="r">MO %</th>
+      </tr></thead>
+      <tbody id="tb-ps"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- PRICING REVENDA -->
+<div class="page" id="pg-pricing-rev">
+  <div class="hero" id="h-pricing-rev" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">📦</div>
+      <div style="flex:1">
+        <div class="hero-title">Tabela de Pricing — Produtos para Revenda</div>
+        <div class="hero-body">Mesma lógica da aba de Serviços, porém sem a coluna de Mão de Obra Direta. Linha G = preço cheio, linha N = com desconto. O CPV % mostra quanto do preço de venda é custo do produto.
+          <div class="hero-steps"><span class="hs">Dados vêm do Cadastro</span><span class="hs">G = cheio · N = c/ desconto</span><span class="hs">MC indica saúde do preço</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:.6rem;margin-bottom:1rem;align-items:flex-end;flex-wrap:wrap">
+    <div class="fld" style="margin:0"><label>% Desconto — linha N</label><input id="pr-desc" type="number" value="0" min="0" max="99" step="0.5" oninput="rdPricingRev()" style="width:90px;padding:.42rem .7rem;border:1px solid var(--bdr);border-radius:7px;background:var(--s0);font-size:.84rem"></div>
+    <button class="btn btn-ol btn-sm" onclick="expPricingRev()">⬇ Exportar CSV</button>
+    <button class="btn btn-dk btn-sm" onclick="nav('analise',null)">🔍 Análise Individual</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tw"><table>
+      <thead><tr>
+        <th>G/N</th><th>Cód</th><th>Produto</th>
+        <th class="r">Preço atual</th><th class="r">CMV (custo produto)</th><th class="r">Frete</th>
+        <th class="r">Custo Var. R$</th><th class="r">Custo Var. %</th>
+        <th class="r">Impostos R$</th><th class="r">Imp. %</th>
+        <th class="r">Tx. Máquina R$</th><th class="r">TM %</th>
+        <th class="r">Tx. Aplicativo R$</th><th class="r">TA %</th>
+        <th class="r">Comissão R$</th><th class="r">Com. %</th>
+        <th class="r">Desp. Var. R$</th><th class="r">DV %</th>
+        <th class="r">MC R$</th><th class="r">MC %</th>
+        <th class="r">CMV R$</th><th class="r">CMV %</th>
+      </tr></thead>
+      <tbody id="tb-pr"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- SIMULAÇÃO -->
+<div class="page" id="pg-sim">
+  <div class="hero" id="h-sim" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">▲</div>
+      <div style="flex:1">
+        <div class="hero-title">Simulação de Resultados <span class="iw"><button class="ib">i</button><div class="tt"><b>Rateio proporcional ao mix</b>: produto que representa 40% do faturamento carrega 40% das despesas fixas — a forma mais justa de distribuição.<br><br><b>% do Mix</b>: participação de cada produto no faturamento total.</div></span></div>
+        <div class="hero-body">Informe a previsão de vendas e veja o resultado projetado com todas as deduções separadas: custos variáveis, impostos, taxa de máquina, aplicativo e comissão em colunas individuais. O rateio de fixos é calculado proporcionalmente ao % do mix de cada produto.
+          <div class="hero-steps"><span class="hs">Informe a previsão de vendas</span><span class="hs">Rateio calculado pelo % do mix</span><span class="hs">Veja margem de lucro por produto</span><span class="hs">Linha TOTALIZADORES mostra o consolidado</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+    <select id="sim-tipo" onchange="rdSim()" style="padding:.46rem .8rem;background:var(--s0);border:1px solid var(--bdr);border-radius:7px;color:var(--ink);font-size:.82rem;font-weight:600">
+      <option value="serv">Serviços / Produtos Próprios</option>
+      <option value="rev">Produtos de Revenda</option>
+    </select>
+    <button class="btn btn-ol btn-sm" onclick="expSim()">⬇ Exportar CSV</button>
+    <button class="btn btn-gd btn-sm" onclick="nav('proposta',null)">▣ Gerar Proposta</button>
+  </div>
+  <div class="kgrid" id="sim-kpis" style="grid-template-columns:repeat(5,1fr)"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tw" style="overflow-x:auto"><table>
+      <thead>
+        <tr style="background:var(--dark)">
+          <td colspan="4" style="padding:.42rem .8rem;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--gold3)">TOTALIZADORES</td>
+          <td id="st-fat" style="text-align:right;padding:.42rem .8rem;font-weight:800;color:var(--gold3);font-size:.82rem"></td>
+          <td id="st-cv" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.65);font-size:.78rem"></td>
+          <td id="st-imp" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.65);font-size:.78rem"></td>
+          <td id="st-maq" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.65);font-size:.78rem"></td>
+          <td id="st-aplic" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.65);font-size:.78rem"></td>
+          <td id="st-com" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.65);font-size:.78rem"></td>
+          <td id="st-mc" style="text-align:right;padding:.42rem .8rem;font-weight:800;color:var(--gold3);font-size:.82rem"></td>
+          <td id="st-mcp" style="text-align:right;padding:.42rem .8rem;font-weight:800;color:var(--gold3)"></td>
+          <td id="st-rat" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.65);font-size:.78rem"></td>
+          <td id="st-ml" style="text-align:right;padding:.42rem .8rem;font-weight:800;color:var(--gold3);font-size:.82rem"></td>
+          <td id="st-mlp" style="text-align:right;padding:.42rem .8rem;font-weight:800;color:var(--gold3)"></td>
+          <td colspan="2" style="padding:.42rem .8rem"></td>
+        </tr>
+        <tr>
+          <th>Cód</th><th>Produto / Serviço</th><th class="r">Preço praticado</th>
+          <th class="r" style="min-width:90px">Prev. de vendas</th>
+          <th class="r">Faturamento <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt">Preço × Previsão de Vendas.</div></span></th>
+          <th class="r">Custos Var. <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt"><b>Custos Variáveis</b>: CMV + MO Direta + Frete. Crescem proporcionalmente às vendas.</div></span></th>
+          <th class="r">Impostos</th>
+          <th class="r">Tx. Máquina</th>
+          <th class="r">Tx. Aplicativo</th>
+          <th class="r">Comissão</th>
+          <th class="r">MC R$ <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt"><b>Margem de Contribuição</b> = Faturamento − Custos Var. − Desp. Var. É o que sobra para pagar os fixos e gerar lucro.</div></span></th>
+          <th class="r">MC %</th>
+          <th class="r">Rateio Fixos <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt"><b>Rateio proporcional</b>: Fixo Total × (Faturamento deste produto ÷ Faturamento Total). Distribuição justa pelos fixos.</div></span></th>
+          <th class="r">Margem Lucro R$</th>
+          <th class="r">ML %</th>
+          <th class="r">Markup</th>
+          <th class="r">% do Mix</th>
+        </tr>
+      </thead>
+      <tbody id="tb-sim"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ANÁLISE INDIVIDUAL -->
+<div class="page" id="pg-analise">
+  <div class="hero" id="h-analise" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">🔍</div>
+      <div style="flex:1">
+        <div class="hero-title">Análise Individual do Produto / Serviço</div>
+        <div class="hero-body">Selecione um produto e compare lado a lado: o <b>preço que você pratica hoje</b> (painel esquerdo) versus o <b>preço sugerido</b> para atingir o lucro desejado (painel direito). Cada linha detalha CMV, MO, frete, impostos, taxas, comissão, MC, rateio de fixos e margem de lucro.
+          <div class="hero-steps"><span class="hs">Selecione o produto</span><span class="hs">Esquerda = preço praticado hoje</span><span class="hs">Direita = preço sugerido para lucro desejado</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:250px 1fr 1fr;gap:1rem;align-items:start">
+    <div class="card">
+      <div class="ct" style="margin-bottom:1rem">Parâmetros</div>
+      <div style="display:flex;flex-direction:column;gap:.8rem">
+        <div class="fld"><label>Tipo</label><select id="ai-tipo" onchange="updAiSel()"><option value="serv">Serviço / Produto próprio</option><option value="rev">Produto de revenda</option></select></div>
+        <div class="fld"><label>Produto / Serviço</label><select id="ai-prod" onchange="calcAi()"><option value="">— Selecione —</option></select></div>
+        <div class="fld"><label>Desconto sobre preço atual (%) <span class="iw"><button class="ib">i</button><div class="tt">Aplica desconto sobre o preço praticado hoje. O painel esquerdo mostra a análise com preço descontado.</div></span></label><input id="ai-desc" type="number" value="0" min="0" max="99" step="0.5" oninput="calcAi()"></div>
+        <hr class="sep">
+        <div class="fld"><label>Lucro desejado (%) <span class="iw"><button class="ib">i</button><div class="tt">% de lucro que você quer ter sobre o preço de venda. O painel direito calcula o preço necessário para atingir essa meta.</div></span></label><input id="ai-lucdes" type="number" value="15" min="0" step="0.5" oninput="calcAi()"></div>
+        <div class="fld"><label>Rateio desp. fixas (%) <span class="iw"><button class="ib">i</button><div class="tt">% das despesas fixas atribuído a este produto. Clique em "calcular" para estimar automaticamente com base nos fixos e atendimentos configurados.</div></span></label>
+          <input id="ai-rateio" type="number" value="10" min="0" step="0.5" oninput="calcAi()">
+          <div class="note"><span class="lnk" onclick="impRateioAi()">↑ calcular com base nos fixos</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct" style="margin-bottom:1rem">Preço de Venda — Praticado Hoje</div>
+      <div id="ai-praticado"><div style="padding:1.5rem;text-align:center;color:var(--ink3);font-style:italic">Selecione um produto.</div></div>
+    </div>
+    <div class="card">
+      <div class="ct" style="margin-bottom:1rem">Preço Sugerido — Meta de Lucro</div>
+      <div id="ai-sugerido"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PONTO DE EQUILÍBRIO -->
+<div class="page" id="pg-pe">
+  <div class="hero" id="h-pe" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">⚖</div>
+      <div style="flex:1">
+        <div class="hero-title">Ponto de Equilíbrio <span class="iw"><button class="ib">i</button><div class="tt"><b>PE Contábil</b>: faturamento mínimo para cobrir todos os custos fixos. Abaixo = prejuízo.<br><b>PE Econômico</b>: faturamento necessário para cobrir os fixos E atingir o lucro desejado.</div></span></div>
+        <div class="hero-body">Descubra quanto precisa faturar por mês para não ter prejuízo (PE Contábil) e para atingir o lucro desejado (PE Econômico). Informe a Margem de Contribuição em <b>%</b> ou em <b>R$</b> — o sistema aceita os dois formatos. O DRE mostra passo a passo como o faturamento vira lucro.
+          <div class="hero-steps"><span class="hs">Importe as despesas fixas</span><span class="hs">Informe MC em % ou R$</span><span class="hs">Veja PE contábil e econômico</span><span class="hs">Leia o diagnóstico automático</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:300px 1fr;gap:1rem;align-items:start">
+    <div class="card">
+      <div class="ct" style="margin-bottom:1rem">Entradas</div>
+      <div style="display:flex;flex-direction:column;gap:.85rem">
+        <div class="fld"><label>Despesas Fixas/Mês (R$) <span class="lnk" onclick="impPE()">↑ importar</span></label><input id="pe_f" type="number" value="0" step="1" oninput="calcPE()"></div>
+        <div style="background:var(--s1);border-radius:var(--r);padding:.85rem">
+          <div style="font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:.6rem">Margem de Contribuição Prevista <span class="iw"><button class="ib">i</button><div class="tt">Informe a MC em % ou em R$. O sistema aceita os dois — preencha apenas um campo.</div></span></div>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <div class="fld" style="flex:1"><label>Em %</label><input id="pe_mc_pct" type="number" value="30" min="0.1" max="100" step="0.5" oninput="pe_from='pct';calcPE()"></div>
+            <div style="font-weight:800;color:var(--ink3);margin-top:18px;font-size:.8rem">OU</div>
+            <div class="fld" style="flex:1"><label>Em R$</label><input id="pe_mc_rs" type="number" value="0" min="0" step="1" oninput="pe_from='rs';calcPE()"></div>
+          </div>
+        </div>
+        <div class="fld"><label>Lucro Desejado (R$)</label><input id="pe_ld" type="number" value="0" step="1" oninput="calcPE()"></div>
+        <hr class="sep">
+        <div class="fld"><label>Faturamento Atual/Mês (R$)</label><input id="pe_fat" type="number" value="0" step="1" oninput="calcPE()"></div>
+        <div class="fld"><label>Qtd de Vendas/Mês</label><input id="pe_qtd" type="number" value="0" step="1" oninput="calcPE()"></div>
+        <div class="fld"><label>Deduções s/ Vendas (%) <span class="iw"><button class="ib">i</button><div class="tt">Impostos e taxas sobre o faturamento bruto. Ex: Simples Nacional 6%.</div></span></label>
+          <div class="slrow"><input type="range" id="pe_ded" min="0" max="30" value="6" step="0.5" oninput="syncSl('pe_ded','pe_ded_v');calcPE()"><div class="slval" id="pe_ded_v">6%</div></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="kgrid" id="pe-kpis" style="grid-template-columns:repeat(3,1fr)"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="card">
+          <div class="ct" style="margin-bottom:1rem">DRE Simplificado <span class="iw"><button class="ib">i</button><div class="tt"><b>DRE</b> = Demonstração do Resultado. Mostra como o faturamento bruto vira lucro (ou prejuízo) depois de todas as deduções.</div></span></div>
+          <div id="pe-dre"></div>
+        </div>
+        <div class="card">
+          <div class="ct" style="margin-bottom:1rem">Diagnóstico</div>
+          <div id="pe-diag"></div>
+          <hr class="sep">
+          <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:.55rem">Ticket Médio</div>
+          <div id="pe-ticket"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- PROPOSTA -->
+<div class="page" id="pg-proposta">
+  <div class="hero" id="h-prop" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">📄</div>
+      <div style="flex:1">
+        <div class="hero-title">Proposta Comercial — GO On AGRO</div>
+        <div class="hero-body">Gere propostas profissionais com identidade GO On AGRO. Selecione o cliente da lista, adicione serviços diretamente do cadastro (com preço já calculado e editável), defina condições e observações, e gere o documento pronto para imprimir em PDF.
+          <div class="hero-steps"><span class="hs">Preencha dados do prestador (1× só)</span><span class="hs">Selecione o cliente da lista</span><span class="hs">Adicione serviços do cadastro</span><span class="hs">Edite preços, gere e imprima</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1.45fr;gap:1rem;align-items:start">
+    <div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:1rem">Dados do Prestador</div>
+        <div class="g2">
+          <div class="fld"><label>Nome / Empresa*</label><input id="pp_prest" placeholder="GO On Agro" oninput="updPrev()"></div>
+          <div class="fld"><label>CNPJ / CPF</label><input id="pp_doc" oninput="updPrev()"></div>
+          <div class="fld"><label>E-mail</label><input id="pp_email" type="email" oninput="updPrev()"></div>
+          <div class="fld"><label>Telefone / WhatsApp</label><input id="pp_tel" oninput="updPrev()"></div>
+          <div class="fld" style="grid-column:1/-1"><label>Cidade / Endereço</label><input id="pp_end" placeholder="Chapecó, SC" oninput="updPrev()"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:1rem">Dados do Cliente</div>
+        <div class="fld" style="margin-bottom:.8rem">
+          <label>Importar da lista <span class="lnk" onclick="updCliSel()">↑ atualizar</span></label>
+          <select id="pp_clisel" onchange="fillCli()"><option value="">— Preencher manualmente —</option></select>
+        </div>
+        <div class="g2">
+          <div class="fld"><label>Nome / Fazenda*</label><input id="pp_cli" oninput="updPrev()"></div>
+          <div class="fld"><label>Responsável</label><input id="pp_resp" oninput="updPrev()"></div>
+          <div class="fld"><label>E-mail</label><input id="pp_cemail" oninput="updPrev()"></div>
+          <div class="fld"><label>Cidade</label><input id="pp_ccid" oninput="updPrev()"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="chd">
+          <div class="ct">Itens da Proposta</div>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-ol btn-xs" onclick="impItemProp()">+ Do cadastro</button>
+            <button class="btn btn-dk btn-xs" onclick="addItem()">+ Manual</button>
+          </div>
+        </div>
+        <div id="prop-itens"></div>
+        <div id="prop-sub" style="text-align:right;margin-top:.75rem;font-size:.84rem;font-weight:700;color:var(--gold)"></div>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:1rem">Condições Comerciais</div>
+        <div class="g3">
+          <div class="fld"><label>Validade</label><input id="pp_val" value="15 dias" oninput="updPrev()"></div>
+          <div class="fld"><label>Pagamento</label><input id="pp_pgto" value="50% entrada · 50% entrega" oninput="updPrev()"></div>
+          <div class="fld"><label>Prazo de Entrega</label><input id="pp_prazo" value="7 dias úteis" oninput="updPrev()"></div>
+        </div>
+        <div class="fld" style="margin-top:.8rem"><label>Desconto Geral (%)</label><input id="pp_desc" type="number" value="0" min="0" max="100" step="0.5" oninput="updSub()"></div>
+        <div class="fld" style="margin-top:.8rem"><label>Observações / Escopo Incluído</label><textarea id="pp_obs" oninput="updPrev()">Inclui reunião de briefing, relatório técnico e suporte pós-entrega por 7 dias.</textarea></div>
+        <div class="fld" style="margin-top:.8rem"><label>Forma de Apresentação</label><textarea id="pp_apres" rows="2" oninput="updPrev()" placeholder="Ex: Proposta enviada via WhatsApp e e-mail..."></textarea></div>
+      </div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem">
+        <button class="btn btn-dk" onclick="gerarProposta()">Gerar Proposta</button>
+        <button class="btn btn-gd" onclick="salvarProposta()">Salvar</button>
+        <button class="btn btn-ol btn-sm" onclick="window.print()">🖨 Imprimir / PDF</button>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="chd"><div class="ct">Preview</div><button class="btn btn-dk btn-sm" onclick="gerarProposta()">Gerar documento</button></div>
+        <div id="prop-prev" style="background:var(--s1);border-radius:var(--r);padding:1rem;font-size:.79rem;color:var(--ink2)">
+          <div style="text-align:center;padding:1.5rem;color:var(--ink3);font-style:italic">Preencha os dados e clique em "Gerar Proposta".</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="chd"><div class="ct">Propostas Salvas</div><span class="badge bdk" id="cnt-prop">0</span></div>
+        <div class="tw"><table>
+          <thead><tr><th>Nº</th><th>Data</th><th>Cliente</th><th class="r">Total</th><th>Validade</th><th></th></tr></thead>
+          <tbody id="tb-props"></tbody>
+        </table></div>
+      </div>
+      <div id="prop-out" style="display:none;margin-top:1rem"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div class="page" id="pg-cfg">
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:1rem;align-items:start">
+    <div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:1rem">Configurações da Empresa</div>
+        <div class="g2">
+          <div class="fld"><label>Nome / Empresa</label><input id="cfg_emp" placeholder="GO On Agro"></div>
+          <div class="fld"><label>CNPJ</label><input id="cfg_cnpj"></div>
+          <div class="fld"><label>Regime Tributário</label><select id="cfg_reg"><option>Simples Nacional</option><option>Lucro Presumido</option><option>Lucro Real</option><option>MEI</option><option>Autônomo</option></select></div>
+          <div class="fld"><label>Alíquota Padrão (%)</label><input id="cfg_aliq" type="number" value="6" step="0.5"></div>
+          <div class="fld"><label>Valor Hora Padrão (R$)</label><input id="cfg_vh" type="number" value="150" step="1"></div>
+          <div class="fld"><label>Atendimentos/Mês (base rateio)</label><input id="cfg_at" type="number" value="30" step="1"></div>
+        </div>
+        <button class="btn btn-dk" style="margin-top:1rem" onclick="salvarCfg()">Salvar Configurações</button>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:1rem">Backup de Dados</div>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+          <button class="btn btn-ol btn-sm" onclick="expJSON()">⬇ Exportar Backup JSON</button>
+          <button class="btn btn-ol btn-sm" onclick="document.getElementById('imp-f').click()">⬆ Importar JSON</button>
+          <input type="file" id="imp-f" accept=".json" style="display:none" onchange="impJSON(event)">
+          <button class="btn btn-rd btn-sm" onclick="if(confirm('Apagar TODOS os dados?'))limparTudo()">Limpar Tudo</button>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="ct" style="margin-bottom:1rem">Resumo do Sistema</div><div id="cfg-res"></div></div>
+  </div>
+</div>
+
+<!-- ══ PRECIFICAÇÃO INTELIGENTE ══ -->
+<div class="page" id="pg-prec-int">
+  <div class="hero" id="h-prec-int" onclick="toggleH(this)">
+    <div class="hero-in"><div class="hero-ico">✦</div>
+      <div style="flex:1">
+        <div class="hero-title">Precificação Inteligente — Preços sugeridos para todos os produtos</div>
+        <div class="hero-body">Informe o volume de vendas previsto de cada produto e o lucro desejado. O sistema calcula automaticamente o preço ideal para todos de uma vez, distribuindo os custos fixos proporcionalmente ao mix de vendas. Edite o preço e veja o lucro recalcular — ou edite o lucro e veja o preço recalcular.
+          <div class="hero-steps"><span class="hs">Informe o volume de cada produto</span><span class="hs">Define % lucro global ou por linha</span><span class="hs">Preço ou lucro são bidirecionais</span><span class="hs">Clique "Aplicar" para atualizar o cadastro</span></div>
+        </div>
+      </div>
+      <div class="hero-tog">▾ ocultar</div>
+    </div>
+  </div>
+
+  <!-- controles globais -->
+  <div class="card" style="margin-bottom:1rem">
+    <div style="display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap">
+      <div>
+        <div style="font-size:.6rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Lucro desejado global (%)</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="pi-lucro-global" type="number" value="20" min="0" max="100" step="0.5"
+            style="width:80px;padding:.44rem .7rem;border:1px solid var(--bdr);border-radius:7px;background:var(--s0);font-size:.88rem;font-weight:700;color:var(--ink)"
+            oninput="piAplicarGlobal()">
+          <span style="font-size:.82rem;color:var(--ink3)">% aplicado a todos</span>
+          <button class="btn btn-dk btn-sm" onclick="piAplicarGlobal()">Aplicar a todos</button>
+        </div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+        <select id="pi-tipo" onchange="rdPrecInt()" style="padding:.44rem .8rem;background:var(--s0);border:1px solid var(--bdr);border-radius:7px;color:var(--ink);font-size:.82rem;font-weight:600">
+          <option value="serv">Serviços / Produtos próprios</option>
+          <option value="rev">Produtos de revenda</option>
+        </select>
+        <button class="btn btn-ol btn-sm" onclick="piExpCSV()">⬇ Exportar CSV</button>
+        <button class="btn btn-gd btn-sm" onclick="piAplicarCadastro()">✓ Aplicar preços ao cadastro</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kgrid" id="pi-kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:1rem"></div>
+
+  <!-- tabela -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tw" style="overflow-x:auto"><table id="pi-table">
+      <thead>
+        <tr style="background:var(--dark)">
+          <td colspan="3" style="padding:.42rem .85rem;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--gold3)">TOTAIS</td>
+          <td id="pi-t-vol" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.6);font-size:.78rem"></td>
+          <td id="pi-t-fat" style="text-align:right;padding:.42rem .8rem;font-weight:800;color:var(--gold3);font-size:.82rem"></td>
+          <td id="pi-t-cv" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.6);font-size:.78rem"></td>
+          <td id="pi-t-dv" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.6);font-size:.78rem"></td>
+          <td id="pi-t-rat" style="text-align:right;padding:.42rem .8rem;color:rgba(255,255,255,.6);font-size:.78rem"></td>
+          <td id="pi-t-mc" style="text-align:right;padding:.42rem .8pm;font-weight:800;color:var(--gold3);font-size:.82rem"></td>
+          <td id="pi-t-ml" style="text-align:right;padding:.42rem .8rem;font-weight:800;color:var(--gold3);font-size:.82rem"></td>
+          <td colspan="3" style="padding:.42rem .8rem"></td>
+        </tr>
+        <tr>
+          <th>Cód</th>
+          <th>Produto / Serviço</th>
+          <th class="c">Unid.</th>
+          <th class="r" style="min-width:85px">Volume vendas
+            <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt">Quantidade prevista de vendas no período. Define a participação de cada produto no mix e, consequentemente, o rateio de custos fixos.</div></span>
+          </th>
+          <th class="r">Faturamento</th>
+          <th class="r">Custo direto
+            <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt">CMV + Mão de Obra + Frete. O que você gasta para entregar este produto.</div></span>
+          </th>
+          <th class="r">Desp. variáveis
+            <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt">Impostos + taxas (máquina, aplicativo, comissão) sobre o preço de venda.</div></span>
+          </th>
+          <th class="r">Rateio fixos
+            <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt">Parcela dos custos fixos deste produto. Calculado proporcionalmente ao % do faturamento total (mix). Muda conforme o volume de cada produto.</div></span>
+          </th>
+          <th class="r">MC %</th>
+          <th class="r">Lucro %
+            <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt">Edite o % de lucro e o preço é recalculado automaticamente.</div></span>
+          </th>
+          <th class="r">Preço sugerido
+            <span class="iw"><button class="ib" style="background:var(--ink3)">i</button><div class="tt">Edite o preço e o % de lucro é recalculado automaticamente. Os dois campos são bidirecionais.</div></span>
+          </th>
+          <th class="r">Markup</th>
+          <th class="r">% do Mix</th>
+        </tr>
+      </thead>
+      <tbody id="tb-pi"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ══ GUIA INTERNO ══ -->
+<div class="ov" id="guia-ov" style="align-items:flex-start;padding:0;background:rgba(26,24,16,.6)">
+  <div style="background:var(--s0);width:380px;min-height:100vh;max-height:100vh;overflow-y:auto;box-shadow:8px 0 40px rgba(0,0,0,.2);display:flex;flex-direction:column">
+    <!-- header -->
+    <div style="background:var(--dark);padding:1.4rem 1.5rem 1.1rem;flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--gold3)">Guia de Uso</div>
+        <button onclick="fecharGuia()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:1.1rem;padding:3px;transition:color .13s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">✕</button>
+      </div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.45);line-height:1.6">Siga os passos na ordem — cada etapa alimenta a próxima.</div>
+      <!-- progress -->
+      <div style="display:flex;gap:4px;margin-top:.85rem" id="guia-dots"></div>
+    </div>
+
+    <!-- steps container -->
+    <div id="guia-steps" style="flex:1;overflow-y:auto"></div>
+
+    <!-- footer -->
+    <div style="padding:1rem 1.5rem;border-top:1px solid var(--bdr);flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink3);cursor:pointer">
+          <input type="checkbox" id="guia-nao-mostrar" onchange="guiaNaoMostrar(this.checked)"> Não mostrar ao iniciar
+        </label>
+        <button onclick="fecharGuia()" class="btn btn-ol btn-sm">Fechar</button>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-ol btn-sm" style="flex:1;justify-content:center" onclick="guiaPrev()">← Anterior</button>
+        <button class="btn btn-dk btn-sm" style="flex:1;justify-content:center" onclick="guiaNext()">Próximo →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div></div><!-- /main /app -->
+<script>
+(function(){
+let D={revs:[],servs:[],funcs:[],desps:[],clis:[],simV:{},props:[],
+  enc:{fer:11.11,t13:8.33,t13f:2.33,inss:20,sat:0,edu:0,inc:0,fgts:8,fgts2:4},
+  cfg:{emp:'GO On Agro',cnpj:'',reg:'Simples Nacional',aliq:6,vh:150,at:30}};
+let eI=null,pIC=0,pe_from='pct';
+const SV=()=>{try{localStorage.setItem('goa4',JSON.stringify(D))}catch(e){}};
+const LD=()=>{try{const d=localStorage.getItem('goa4');if(d){const p=JSON.parse(d);D={...D,...p}}}catch(e){}};
+const R=v=>'R$\u00a0'+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const Rp=(v,d=1)=>(+v||0).toFixed(d)+'%';
+const gv=id=>parseFloat(document.getElementById(id)?.value)||0;
+const gvs=id=>(document.getElementById(id)?.value||'').trim();
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,4);
+const empt=m=>`<tr><td colspan="30" style="padding:2.5rem;text-align:center;color:var(--ink3);font-style:italic">${m}</td></tr>`;
+
+// ENCARGOS
+const encTot=()=>{const enc=D.enc,tr=(enc.fer||0)+(enc.t13||0)+(enc.t13f||0),so=(enc.inss||0)+(enc.sat||0)+(enc.edu||0)+(enc.inc||0)+(enc.fgts||0)+(enc.fgts2||0);return{tr,so,tot:tr+so}};
+const custoF=f=>{const{tr,so,tot}=encTot();const es=f.tipo==='clt'?f.sal*(so/100):0,et=f.tipo==='clt'?f.sal*(tr/100):0,bens=(f.vt||0)+(f.vr||0)+(f.cv||0),ctot=f.sal+es+et+bens,vh=f.ch>0?ctot/f.ch:0;return{es,et,bens,ctot,vh}};
+const totFolha=()=>D.funcs.reduce((s,f)=>s+custoF(f).ctot,0);
+const totDesps=()=>D.desps.reduce((s,d)=>s+(d.val||0),0);
+const totFixo=()=>totFolha()+totDesps();
+
+// calcMC: given product p and preco, returns all breakdown
+const calcMC=(p,preco)=>{
+  const cv=(p.cmv||0)+(p.mo||0)+(p.frete||0);
+  const dv_imp=preco*(p.imp||0)/100,dv_maq=preco*(p.maq||0)/100,dv_aplic=preco*(p.aplic||0)/100,dv_com=preco*(p.com||0)/100;
+  const dv=dv_imp+dv_maq+dv_aplic+dv_com,mc=preco-cv-dv,mcp=preco>0?mc/preco*100:0;
+  return{cv,dv,dv_imp,dv_maq,dv_aplic,dv_com,mc,mcp};
+};
+
+// UTILS
+function toast(msg,t=''){const el=document.getElementById('toast');el.textContent=msg;el.className='on'+(t?' '+t:'');clearTimeout(el._t);el._t=setTimeout(()=>el.className='',2700)}
+function cm(id){document.getElementById(id).classList.remove('on');eI=null}
+function om(id){document.getElementById(id).classList.add('on')}
+function syncSl(id,vid){const el=document.getElementById(vid);if(el)el.textContent=document.getElementById(id)?.value+'%'}
+function toggleH(el){
+  const b=el.querySelector('.hero-body'),st=el.querySelector('.hero-steps'),t=el.querySelector('.hero-tog');
+  const vis=b&&b.style.display!=='none';
+  if(b)b.style.display=vis?'none':'block';
+  if(st)st.style.display=vis?'none':'flex';
+  el.classList.toggle('collapsed',vis);
+  if(t)t.textContent=vis?'▸ mostrar':'▾ ocultar';
+}
+
+// NAV
+const PMAP={dash:{t:'Dashboard',s:'Visão geral do negócio'},'cad-rev':{t:'Cadastro — Produtos para Revenda',s:'Registre produtos comprados para revenda'},'cad-serv':{t:'Cadastro — Serviços / Produtos Próprios',s:'Registre seus serviços e produtos'},folha:{t:'Folha de Pagamento',s:'Encargos salariais (Trabalhistas e Sociais)'},desps:{t:'Despesas Fixas',s:'Custos fixos mensais'},clis:{t:'Clientes / Produtores',s:'Base de clientes'},'pricing-serv':{t:'Pricing — Serviços / Produtos Próprios',s:'Tabela G/N com análise completa por produto'},'pricing-rev':{t:'Pricing — Produtos para Revenda',s:'Tabela G/N com análise completa por produto'},'prec-int':{t:'✦ Precificação Inteligente',s:'Preços sugeridos para todos os produtos · Bidirecional · Rateio automático'},sim:{t:'Simulação de Resultados',s:'17 colunas · rateio proporcional ao % do mix'},analise:{t:'Análise Individual',s:'Preço praticado hoje vs Preço sugerido'},pe:{t:'Ponto de Equilíbrio',s:'PE contábil e econômico · DRE simplificado'},proposta:{t:'Propostas Comerciais',s:'Gere propostas profissionais com identidade GO On AGRO'},cfg:{t:'Configurações',s:'Parâmetros e backup do sistema'}};
+const RFNS={dash:rdDash,'cad-rev':rdRev,'cad-serv':rdServ,folha:()=>{rdFolha();buildEnc()},desps:rdDesps,clis:rdClis,'pricing-serv':rdPricingServ,'pricing-rev':rdPricingRev,'prec-int':rdPrecInt,sim:rdSim,analise:()=>{updAiSel();calcAi()},pe:calcPE,proposta:()=>{updCliSel();rdProps();updSub();updPrev()},cfg:rdCfg};
+function nav(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nv').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+id)?.classList.add('on');
+  if(btn)btn.classList.add('on');
+  else document.querySelectorAll('.nv').forEach(b=>{if(b.getAttribute('onclick')?.includes("'"+id+"'"))b.classList.add('on')});
+  const pg=PMAP[id]||{};
+  document.getElementById('tb-t').textContent=pg.t||id;
+  document.getElementById('tb-s').textContent=pg.s||'';
+  RFNS[id]?.();updBadges();
+}
+function updBadges(){
+  document.getElementById('p-rev').textContent=D.revs.length;
+  document.getElementById('p-serv').textContent=D.servs.length;
+  document.getElementById('p-func').textContent=D.funcs.length;
+  document.getElementById('p-desp').textContent=D.desps.length;
+  document.getElementById('p-cli').textContent=D.clis.length;
+  document.getElementById('p-prop').textContent=D.props.length;
+}
+
+// ENCARGOS BUILD
+const E_TRAB=[{id:'e_fer',l:'Provisão Férias + 30%',k:'fer'},{id:'e_t13',l:'Provisão 13º Salário',k:'t13'},{id:'e_t13f',l:'Previsão 13º sobre Férias',k:'t13f'}];
+const E_SOC=[{id:'e_inss',l:'INSS',k:'inss'},{id:'e_sat',l:'SAT/RAT',k:'sat'},{id:'e_edu',l:'Salário Educação',k:'edu'},{id:'e_inc',l:'INCRA/SEST/SEBRAE/SENAT',k:'inc'},{id:'e_fgts',l:'FGTS',k:'fgts'},{id:'e_fgts2',l:'FGTS + Prov. Rescisão',k:'fgts2'}];
+function buildEnc(){
+  const mk=(arr,wid)=>{const w=document.getElementById(wid);if(!w)return;w.innerHTML=arr.map(x=>`<div class="enc-row"><span style="color:var(--ink2);font-size:.78rem">${x.l}</span><div style="display:flex;align-items:center;gap:3px"><input type="number" id="${x.id}" value="${D.enc[x.k]||0}" step="0.01" oninput="updEnc()" style="width:60px;text-align:right;padding:3px 6px;font-size:.77rem;background:var(--s0);border:1px solid var(--bdr);border-radius:5px;color:var(--ink)"><span style="font-size:.72rem;color:var(--ink3)">%</span></div></div>`).join('')};
+  mk(E_TRAB,'enc-trab');mk(E_SOC,'enc-soc');
+}
+function updEnc(){
+  E_TRAB.forEach(x=>D.enc[x.k]=gv(x.id));E_SOC.forEach(x=>D.enc[x.k]=gv(x.id));
+  const{tr,so,tot}=encTot();
+  const tt=document.getElementById('enc-trab-tot');if(tt)tt.textContent=tr.toFixed(2)+'%';
+  const st=document.getElementById('enc-soc-tot');if(st)st.textContent=so.toFixed(2)+'%';
+  const et=document.getElementById('enc-tot-lbl');if(et)et.textContent=tot.toFixed(2)+'%';
+  SV();rdFolha();
+}
+
+// CRUD REVENDA
+function om_rev(i=null){eI=i;const p=i!=null?D.revs[i]:{};document.getElementById('m-rev-t').textContent=i!=null?'Editar Produto':'Produto para Revenda';document.getElementById('cr_desc').value=p.desc||'';document.getElementById('cr_forn').value=p.forn||'';document.getElementById('cr_qtd').value=p.qtd||1;document.getElementById('cr_um').value=p.um||'Un.';document.getElementById('cr_preco').value=p.preco||0;document.getElementById('cr_frete').value=p.frete||0;document.getElementById('cr_imp').value=p.imp||D.cfg.aliq||6;document.getElementById('cr_maq').value=p.maq||0;document.getElementById('cr_aplic').value=p.aplic||0;document.getElementById('cr_com').value=p.com||0;document.getElementById('cr_pva').value=p.pva||0;om('m-rev')}
+function sv_rev(){const desc=document.getElementById('cr_desc').value.trim();if(!desc){toast('Informe a descrição','');return}const o={id:eI!=null?D.revs[eI].id:uid(),desc,forn:gvs('cr_forn'),qtd:gv('cr_qtd')||1,um:gvs('cr_um'),preco:gv('cr_preco'),frete:gv('cr_frete'),imp:gv('cr_imp'),maq:gv('cr_maq'),aplic:gv('cr_aplic'),com:gv('cr_com'),pva:gv('cr_pva'),cmv:gv('cr_preco'),mo:0};if(eI!=null)D.revs[eI]=o;else D.revs.push(o);SV();cm('m-rev');rdRev();if(document.getElementById('pg-pricing-rev')?.classList.contains('on'))rdPricingRev();toast('Produto salvo!','ok')}
+function rdRev(){const tb=document.getElementById('tb-rev');if(!tb)return;if(!D.revs.length){tb.innerHTML=empt('Nenhum produto cadastrado');return}tb.innerHTML=D.revs.map((p,i)=>{const{cv,dv,mc,mcp}=calcMC(p,p.pva||0);const bm=mcp>=30?'bgr':mcp>=15?'bam':'brd';return`<tr><td class="c" style="color:var(--ink3)">${String(i+1).padStart(3,'0')}</td><td><strong>${p.desc}</strong></td><td style="color:var(--ink3)">${p.forn||'—'}</td><td class="c">${p.um}</td><td class="r">${R(p.preco)}</td><td class="r">${R(p.frete)}</td><td class="r">${R(cv)}</td><td class="r">${R(dv)}</td><td class="r gd">${R(p.pva)}</td><td class="r" style="color:${mc>=0?'var(--green)':'var(--red)'}">${R(mc)}</td><td class="r"><span class="badge ${bm}">${mcp.toFixed(1)}%</span></td><td><button class="bic" onclick="om_rev(${i})">✏</button> <button class="bic" onclick="del('revs',${i})">🗑</button></td></tr>`}).join('')}
+
+// CRUD SERVIÇOS
+function om_serv(i=null){eI=i;const p=i!=null?D.servs[i]:{};document.getElementById('m-serv-t').textContent=i!=null?'Editar Serviço':'Serviço / Produto Próprio';document.getElementById('cs_desc').value=p.desc||'';document.getElementById('cs_cat').value=p.cat||'Consultoria';document.getElementById('cs_und').value=p.und||'Hora';document.getElementById('cs_cmv').value=p.cmv||0;document.getElementById('cs_mo').value=p.mo||0;document.getElementById('cs_frete').value=p.frete||0;document.getElementById('cs_imp').value=p.imp||D.cfg.aliq||6;document.getElementById('cs_maq').value=p.maq||0;document.getElementById('cs_aplic').value=p.aplic||0;document.getElementById('cs_com').value=p.com||0;document.getElementById('cs_pva').value=p.pva||0;document.getElementById('cs_esc').value=p.esc||'';om('m-serv')}
+function sv_serv(){const desc=document.getElementById('cs_desc').value.trim();if(!desc){toast('Informe a descrição','');return}const o={id:eI!=null?D.servs[eI].id:uid(),desc,cat:gvs('cs_cat'),und:gvs('cs_und'),cmv:gv('cs_cmv'),mo:gv('cs_mo'),frete:gv('cs_frete'),imp:gv('cs_imp'),maq:gv('cs_maq'),aplic:gv('cs_aplic'),com:gv('cs_com'),pva:gv('cs_pva'),esc:gvs('cs_esc')};if(eI!=null)D.servs[eI]=o;else D.servs.push(o);SV();cm('m-serv');rdServ();if(document.getElementById('pg-pricing-serv')?.classList.contains('on'))rdPricingServ();toast('Serviço salvo!','ok')}
+function rdServ(){const tb=document.getElementById('tb-serv');if(!tb)return;if(!D.servs.length){tb.innerHTML=empt('Nenhum serviço cadastrado');return}tb.innerHTML=D.servs.map((p,i)=>{const{cv,dv,mc,mcp}=calcMC(p,p.pva||0);const bm=mcp>=30?'bgr':mcp>=15?'bam':'brd';return`<tr><td class="c" style="color:var(--ink3)">${String(i+1).padStart(3,'0')}</td><td><strong>${p.desc}</strong>${p.esc?`<br><span style="font-size:.7rem;color:var(--ink3)">${p.esc.slice(0,50)}…</span>`:''}</td><td><span class="badge bgd">${p.cat}</span></td><td class="c">${p.und}</td><td class="r">${R(p.cmv)}</td><td class="r">${R(p.mo)}</td><td class="r">${R(p.frete)}</td><td class="r">${R(cv)}</td><td class="r">${R(dv)}</td><td class="r gd">${R(p.pva)}</td><td class="r" style="color:${mc>=0?'var(--green)':'var(--red)'}">${R(mc)}</td><td class="r"><span class="badge ${bm}">${mcp.toFixed(1)}%</span></td><td><button class="bic" onclick="om_serv(${i})">✏</button> <button class="bic" onclick="del('servs',${i})">🗑</button></td></tr>`}).join('')}
+
+// CRUD FUNCIONÁRIOS
+function om_func(i=null){eI=i;const f=i!=null?D.funcs[i]:{};document.getElementById('m-func-t').textContent=i!=null?'Editar Colaborador':'Novo Colaborador';document.getElementById('ff_nome').value=f.nome||'';document.getElementById('ff_tipo').value=f.tipo||'clt';document.getElementById('ff_cargo').value=f.cargo||'';document.getElementById('ff_setor').value=f.setor||'';document.getElementById('ff_data').value=f.data||'';document.getElementById('ff_sal').value=f.sal||3000;document.getElementById('ff_ch').value=f.ch||220;document.getElementById('ff_vt').value=f.vt||0;document.getElementById('ff_vr').value=f.vr||0;document.getElementById('ff_cv').value=f.cv||0;pvFunc();om('m-func')}
+function pvFunc(){const sal=gv('ff_sal'),tipo=gvs('ff_tipo'),ch=gv('ff_ch'),{tr,so,tot}=encTot(),esc=tipo==='clt'?sal*(tot/100):0,bens=gv('ff_vt')+gv('ff_vr')+gv('ff_cv'),ctot=sal+esc+bens,vh=ch>0?ctot/ch:0;const el=document.getElementById('f-prev');if(!el)return;el.innerHTML=[['Encargos',esc],['Benefícios',bens],['Custo Total',ctot],['R$/hora',vh]].map(([l,v])=>`<div><div style="font-size:.58rem;font-weight:800;text-transform:uppercase;color:var(--ink3);margin-bottom:2px">${l}</div><div style="font-weight:800;font-size:.9rem;color:var(--gold)">${R(v)}</div></div>`).join('')}
+function sv_func(){const nome=document.getElementById('ff_nome').value.trim();if(!nome){toast('Informe o nome','');return}const o={id:eI!=null?D.funcs[eI].id:uid(),nome,tipo:gvs('ff_tipo'),cargo:gvs('ff_cargo'),setor:gvs('ff_setor'),data:gvs('ff_data'),sal:gv('ff_sal'),ch:gv('ff_ch'),vt:gv('ff_vt'),vr:gv('ff_vr'),cv:gv('ff_cv')};if(eI!=null)D.funcs[eI]=o;else D.funcs.push(o);SV();cm('m-func');rdFolha();toast('Colaborador salvo!','ok')}
+function rdFolha(){
+  const tb=document.getElementById('tb-func'),ft=document.getElementById('tb-func-ft'),kpis=document.getElementById('folha-kpis');if(!tb)return;
+  const tf=totFolha();
+  if(kpis)kpis.innerHTML=[{l:'Custo Total Equipe',v:R(tf),c:'dk'},{l:'Total Enc. CLT',v:R(D.funcs.filter(f=>f.tipo==='clt').reduce((s,f)=>s+custoF(f).es+custoF(f).et,0)),c:''},{l:'Total Benefícios',v:R(D.funcs.reduce((s,f)=>s+custoF(f).bens,0)),c:''},{l:D.funcs.length+' colaborador(es)',v:encTot().tot.toFixed(2)+'% enc. CLT',c:''}].map(x=>`<div class="kpi ${x.c}"><div class="klbl">${x.l}</div><div class="kval">${x.v}</div></div>`).join('');
+  if(!D.funcs.length){tb.innerHTML=empt('Nenhum colaborador cadastrado');ft.innerHTML='';return}
+  const tipos={clt:'CLT',pj:'PJ',socio:'Sócio',est:'Est.'};
+  tb.innerHTML=D.funcs.map((f,i)=>{const c=custoF(f);return`<tr><td class="c" style="color:var(--ink3)">${String(i+1).padStart(4,'0')}</td><td><strong>${f.nome}</strong></td><td>${f.cargo||'—'}</td><td>${f.setor||'—'}</td><td class="c"><span class="badge bgry">${tipos[f.tipo]||f.tipo}</span></td><td style="color:var(--ink3)">${f.data||'—'}</td><td class="r">${R(f.sal)}</td><td class="r">${R(c.es)}</td><td class="r">${R(c.et)}</td><td class="r">${R(f.vt||0)}</td><td class="r">${R(f.vr||0)}</td><td class="r">${R(f.cv||0)}</td><td class="r gd">${R(c.ctot)}</td><td class="r">${R(c.vh)}</td><td><button class="bic" onclick="om_func(${i})">✏</button> <button class="bic" onclick="del('funcs',${i})">🗑</button></td></tr>`}).join('');
+  ft.innerHTML=`<tr><td colspan="12" style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em">Total Folha de Pagamento</td><td style="text-align:right;font-size:.95rem">${R(tf)}</td><td colspan="2"></td></tr>`;
+}
+
+// CRUD DESPESAS
+function om_desp(i=null){eI=i;const d=i!=null?D.desps[i]:{};document.getElementById('m-desp-t').textContent=i!=null?'Editar Despesa':'Nova Despesa Fixa';document.getElementById('dd_desc').value=d.desc||'';document.getElementById('dd_val').value=d.val||0;om('m-desp')}
+function sv_desp(){const desc=document.getElementById('dd_desc').value.trim();if(!desc){toast('Informe a descrição','');return}const o={id:eI!=null?D.desps[eI].id:uid(),desc,val:gv('dd_val')};if(eI!=null)D.desps[eI]=o;else D.desps.push(o);SV();cm('m-desp');rdDesps();toast('Despesa salva!','ok')}
+function rdDesps(){
+  const tb=document.getElementById('tb-desp'),ft=document.getElementById('tb-desp-ft'),res=document.getElementById('desp-res'),chrt=document.getElementById('desp-chart');if(!tb)return;
+  const tf=totFolha(),td=totDesps(),grand=tf+td;
+  if(!D.desps.length){tb.innerHTML=empt('Nenhuma despesa cadastrada. A folha é somada automaticamente.');ft.innerHTML='';}
+  else{tb.innerHTML=D.desps.map((d,i)=>{const p=grand>0?d.val/grand*100:0;return`<tr><td><strong>${d.desc}</strong></td><td class="r gd">${R(d.val)}</td><td class="r"><div style="display:flex;align-items:center;gap:7px;justify-content:flex-end"><div class="pbar" style="width:55px"><div class="pfill" style="width:${Math.min(100,p*2).toFixed(1)}%;background:var(--gold2)"></div></div><span style="font-size:.73rem;color:var(--ink3);min-width:33px">${p.toFixed(1)}%</span></div></td><td><button class="bic" onclick="om_desp(${i})">✏</button> <button class="bic" onclick="del('desps',${i})">🗑</button></td></tr>`}).join('');ft.innerHTML=`<tr><td style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em">Total Despesas Cadastradas</td><td style="text-align:right;font-size:.95rem">${R(td)}</td><td colspan="2"></td></tr>`;}
+  if(res)res.innerHTML=[{l:'Folha de Pagamento',v:tf},{l:'Outras Despesas ('+D.desps.length+' itens)',v:td},{l:'Total Fixo Mensal',v:grand,hi:true}].map(x=>`<div class="rrow${x.hi?' hi':''}"><span class="rl">${x.l}</span><span class="rv" style="${x.hi?'color:var(--gold)':''}">${R(x.v)}</span></div>`).join('');
+  if(chrt&&D.desps.length){const mx=Math.max(...D.desps.map(d=>d.val),1);chrt.innerHTML=[...D.desps].sort((a,b)=>b.val-a.val).slice(0,6).map(d=>`<div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;justify-content:space-between;font-size:.74rem"><span style="color:var(--ink2)">${d.desc}</span><span style="font-weight:700;color:var(--gold)">${R(d.val)}</span></div><div class="pbar"><div class="pfill" style="width:${(d.val/mx*100).toFixed(1)}%;background:var(--gold2)"></div></div></div>`).join('');}
+}
+
+// CRUD CLIENTES
+function om_cli(i=null){eI=i;const c=i!=null?D.clis[i]:{};document.getElementById('m-cli-t').textContent=i!=null?'Editar Cliente':'Novo Cliente';['cl_nome','cl_resp','cl_email','cl_tel','cl_cid'].forEach(id=>document.getElementById(id).value=c[id.replace('cl_','')]||'');document.getElementById('cl_seg').value=c.seg||'Gado de Corte';document.getElementById('cl_obs').value=c.obs||'';om('m-cli')}
+function sv_cli(){const nome=document.getElementById('cl_nome').value.trim();if(!nome){toast('Informe o nome','');return}const o={id:eI!=null?D.clis[eI].id:uid(),nome,resp:gvs('cl_resp'),email:gvs('cl_email'),tel:gvs('cl_tel'),cid:gvs('cl_cid'),seg:gvs('cl_seg'),obs:gvs('cl_obs')};if(eI!=null)D.clis[eI]=o;else D.clis.push(o);SV();cm('m-cli');rdClis();toast('Cliente salvo!','ok')}
+function rdClis(){const tb=document.getElementById('tb-cli');if(!tb)return;if(!D.clis.length){tb.innerHTML=empt('Nenhum cliente cadastrado');return}tb.innerHTML=D.clis.map((c,i)=>`<tr><td><strong>${c.nome}</strong></td><td>${c.resp||'—'}</td><td>${c.email||'—'}</td><td>${c.tel||'—'}</td><td>${c.cid||'—'}</td><td><span class="badge bgd">${c.seg}</span></td><td><button class="bic" onclick="om_cli(${i})">✏</button> <button class="bic" onclick="del('clis',${i})">🗑</button></td></tr>`).join('')}
+
+// DELETE
+function del(col,i){if(!confirm('Confirmar exclusão?'))return;D[col].splice(i,1);SV();({revs:rdRev,servs:rdServ,funcs:rdFolha,desps:rdDesps,clis:rdClis,props:rdProps})[col]?.();updBadges();toast('Excluído!')}
+
+// PRICING — linha G e N por produto (lógica exata da planilha)
+function pricingRow(p,tipo,idx,descPct){
+  const pG=p.pva||0,pN=pG*(1-(descPct||0)/100);
+  const mkRow=(gn,preco)=>{
+    const cv=(p.cmv||0)+(p.mo||0)+(p.frete||0);
+    const{dv,dv_imp,dv_maq,dv_aplic,dv_com,mc,mcp}=calcMC(p,preco);
+    const pct=(v,tot)=>tot>0?(v/tot*100).toFixed(1)+'%':'0.0%';
+    const bm=mcp>=30?'bgr':mcp>=15?'bam':'brd';
+    const isN=gn==='N';
+    const cpv_rs=cv,cpv_pct=pct(cv,preco);
+    const mo_rs=p.mo||0,mo_pct=pct(mo_rs,preco);
+    return`<tr style="${isN?'background:var(--s1)':''}">
+      <td class="c"><span class="badge ${isN?'bgry':'bgd'}" style="font-size:.65rem">${gn}</span></td>
+      <td class="c" style="color:var(--ink3)">${String(idx+1).padStart(3,'0')}</td>
+      <td>${isN?'<span style="color:var(--ink3);font-size:.78rem">↳ c/ desconto</span>':`<span style="cursor:pointer;color:var(--gold);text-decoration:underline;text-underline-offset:2px;font-size:.75rem;font-weight:700" onclick="${tipo==='serv'?`om_serv(${idx})`:`om_rev(${idx})`}" title="Clique para editar">✏ editar</span><br><strong style="cursor:pointer" onclick="${tipo==='serv'?`om_serv(${idx})`:`om_rev(${idx})`}">${p.desc}</strong>${p.cat?`<br><span class="badge bgd" style="font-size:.62rem">${p.cat}</span>`:''}`}</td>
+      <td class="r ${isN?'':'gd'}">${R(preco)}</td>
+      ${tipo==='serv'?`<td class="r">${R(p.cmv||0)}</td><td class="r">${R(p.mo||0)}</td><td class="r">${R(p.frete||0)}</td>`:`<td class="r">${R(p.preco||p.cmv||0)}</td><td class="r">${R(p.frete||0)}</td>`}
+      <td class="r">${R(cv)}</td><td class="r" style="color:var(--ink3)">${pct(cv,preco)}</td>
+      <td class="r">${R(dv_imp)}</td><td class="r" style="color:var(--ink3)">${pct(dv_imp,preco)}</td>
+      <td class="r">${R(dv_maq)}</td><td class="r" style="color:var(--ink3)">${pct(dv_maq,preco)}</td>
+      <td class="r">${R(dv_aplic)}</td><td class="r" style="color:var(--ink3)">${pct(dv_aplic,preco)}</td>
+      <td class="r">${R(dv_com)}</td><td class="r" style="color:var(--ink3)">${pct(dv_com,preco)}</td>
+      <td class="r">${R(dv)}</td><td class="r" style="color:var(--ink3)">${pct(dv,preco)}</td>
+      <td class="r" style="color:${mc>=0?'var(--green)':'var(--red)'}">${R(mc)}</td><td class="r"><span class="badge ${bm}">${mcp.toFixed(1)}%</span></td>
+      <td class="r">${R(cpv_rs)}</td><td class="r" style="color:var(--ink3)">${cpv_pct}</td>
+      ${tipo==='serv'?`<td class="r">${R(mo_rs)}</td><td class="r" style="color:var(--ink3)">${mo_pct}</td>`:''}
+    </tr>`;
+  };
+  return mkRow('G',pG)+mkRow('N',pN);
+}
+function rdPricingServ(){const tb=document.getElementById('tb-ps');if(!tb)return;const d=gv('ps-desc');if(!D.servs.length){tb.innerHTML=empt('Nenhum serviço cadastrado');return}tb.innerHTML=D.servs.map((p,i)=>pricingRow(p,'serv',i,d)).join('')}
+function rdPricingRev(){const tb=document.getElementById('tb-pr');if(!tb)return;const d=gv('pr-desc');if(!D.revs.length){tb.innerHTML=empt('Nenhum produto de revenda cadastrado');return}tb.innerHTML=D.revs.map((p,i)=>pricingRow(p,'rev',i,d)).join('')}
+function expPricingServ(){if(!D.servs.length){toast('Sem dados','');return}const d=gv('ps-desc');let csv='G/N;Cód;Produto/Serviço;Preço;CMV;MO;Frete;CV R$;CV%;Imp R$;Imp%;Máq R$;Máq%;Aplic R$;Aplic%;Com R$;Com%;DV R$;DV%;MC R$;MC%;CPV R$;CPV%;MO R$;MO%\n';D.servs.forEach((p,i)=>{['G','N'].forEach(gn=>{const pr=gn==='G'?p.pva:p.pva*(1-d/100);const cv=(p.cmv||0)+(p.mo||0)+(p.frete||0);const{dv,dv_imp,dv_maq,dv_aplic,dv_com,mc,mcp}=calcMC(p,pr);const pct=(v)=>pr>0?(v/pr*100).toFixed(1):'0.0';csv+=`${gn};${String(i+1).padStart(3,'0')};${p.desc};${pr.toFixed(2)};${(p.cmv||0).toFixed(2)};${(p.mo||0).toFixed(2)};${(p.frete||0).toFixed(2)};${cv.toFixed(2)};${pct(cv)}%;${dv_imp.toFixed(2)};${pct(dv_imp)}%;${dv_maq.toFixed(2)};${pct(dv_maq)}%;${dv_aplic.toFixed(2)};${pct(dv_aplic)}%;${dv_com.toFixed(2)};${pct(dv_com)}%;${dv.toFixed(2)};${pct(dv)}%;${mc.toFixed(2)};${mcp.toFixed(1)}%;${cv.toFixed(2)};${pct(cv)}%;${(p.mo||0).toFixed(2)};${pct(p.mo||0)}%\n`})});const b=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pricing_servicos.csv';a.click();toast('CSV exportado!','ok')}
+function expPricingRev(){if(!D.revs.length){toast('Sem dados','');return}toast('Exportar CSV — disponível em breve','gd')}
+
+// Helper exposto globalmente para o onchange da simulação
+function simSetVol(id, val) {
+  D.simV[id] = val;
+  SV();
+  rdSim();
+}
+
+// SIMULAÇÃO — 17 colunas exatas da planilha + rateio proporcional ao mix
+function rdSim(){
+  const tipo=gvs('sim-tipo')||'serv',list=tipo==='serv'?D.servs:D.revs;
+  const tb=document.getElementById('tb-sim'),kpis=document.getElementById('sim-kpis');
+  if(!tb)return;
+  if(!list.length){tb.innerHTML=empt('Nenhum produto cadastrado nesta categoria.');if(kpis)kpis.innerHTML='';['fat','cv','imp','maq','aplic','com','mc','mcp','rat','ml','mlp'].forEach(id=>{const el=document.getElementById('st-'+id);if(el)el.textContent=''});return}
+  list.forEach(p=>{if(D.simV[p.id]===undefined)D.simV[p.id]=0});
+  // 1ª passagem: calcular faturamento total para rateio proporcional
+  let tFat=0;list.forEach(p=>tFat+=(p.pva||0)*(D.simV[p.id]||0));
+  const fixo=totFixo();
+  let tCV=0,tIMP=0,tMAQ=0,tAPLIC=0,tCOM=0,tMC=0,tRAT=0,tML=0;
+  // 2ª passagem: renderizar linhas
+  tb.innerHTML=list.map((p,i)=>{
+    const q=D.simV[p.id]||0;
+    const fat=(p.pva||0)*q;
+    const cv=((p.cmv||0)+(p.mo||0)+(p.frete||0))*q;
+    const imp=fat*(p.imp||0)/100,maq=fat*(p.maq||0)/100,aplic=fat*(p.aplic||0)/100,com=fat*(p.com||0)/100;
+    const mc=fat-cv-imp-maq-aplic-com,mcp=fat>0?mc/fat*100:0;
+    // Rateio proporcional ao % do mix (lógica da planilha)
+    const mix=tFat>0?fat/tFat:0,rat=fixo*mix;
+    const ml=mc-rat,mlp=fat>0?ml/fat*100:0;
+    const custo_unit=(p.cmv||0)+(p.mo||0)+(p.frete||0);
+    const mk=q>0&&custo_unit>0?((p.pva||0)/custo_unit):0;
+    const mixPct=tFat>0?fat/tFat*100:0;
+    tCV+=cv;tIMP+=imp;tMAQ+=maq;tAPLIC+=aplic;tCOM+=com;tMC+=mc;tRAT+=rat;tML+=ml;
+    const bmc=mcp>=30?'bgr':mcp>=15?'bam':'brd',bml=mlp>=15?'bgr':mlp>=0?'bam':'brd';
+    return`<tr>
+      <td class="c" style="color:var(--ink3)">${String(i+1).padStart(3,'0')}</td>
+      <td><strong>${p.desc}</strong></td>
+      <td class="r gd">${R(p.pva||0)}</td>
+      <td class="c"><input type="number" value="${q}" min="0" style="width:68px;padding:3px 7px;text-align:center;background:var(--s1);border:1px solid var(--bdr);border-radius:6px;color:var(--ink);font-size:.8rem" onchange="simSetVol('${p.id}',+this.value)"></td>
+      <td class="r">${R(fat)}</td>
+      <td class="r">${R(cv)}</td>
+      <td class="r">${R(imp)}</td>
+      <td class="r">${R(maq)}</td>
+      <td class="r">${R(aplic)}</td>
+      <td class="r">${R(com)}</td>
+      <td class="r" style="color:${mc>=0?'var(--green)':'var(--red)'}">${R(mc)}</td>
+      <td class="r"><span class="badge ${bmc}">${mcp.toFixed(1)}%</span></td>
+      <td class="r">${R(rat)}</td>
+      <td class="r" style="color:${ml>=0?'var(--green)':'var(--red)'}">${R(ml)}</td>
+      <td class="r"><span class="badge ${bml}">${mlp.toFixed(1)}%</span></td>
+      <td class="r">${mk>0?mk.toFixed(2)+'×':'—'}</td>
+      <td class="r">${mixPct>0?mixPct.toFixed(1)+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+  // Totalizadores (linha no topo da tabela)
+  const tMcp=tFat>0?tMC/tFat*100:0,tMlp=tFat>0?tML/tFat*100:0;
+  const setT=(id,v)=>{const el=document.getElementById('st-'+id);if(el)el.textContent=v};
+  setT('fat',R(tFat));setT('cv',R(tCV));setT('imp',R(tIMP));setT('maq',R(tMAQ));setT('aplic',R(tAPLIC));setT('com',R(tCOM));setT('mc',R(tMC));setT('mcp',tMcp.toFixed(1)+'%');setT('rat',R(tRAT));setT('ml',R(tML));setT('mlp',tMlp.toFixed(1)+'%');
+  if(kpis)kpis.innerHTML=[{l:'Faturamento Total',v:R(tFat),c:'dk'},{l:'Margem Contribuição',v:`${R(tMC)} (${tMcp.toFixed(1)}%)`,c:'gd'},{l:'Desp. Fixas',v:R(fixo),c:''},{l:'Margem de Lucro',v:R(tML),c:tML>=0?'gr':''},{l:'PE Estimado',v:tMcp>0?R(fixo/(tMcp/100)):'—',c:''}].map(x=>`<div class="kpi ${x.c}"><div class="klbl">${x.l}</div><div class="kval">${x.v}</div></div>`).join('');
+}
+function expSim(){
+  const tipo=gvs('sim-tipo')||'serv',list=tipo==='serv'?D.servs:D.revs;if(!list.length){toast('Sem dados','');return}
+  let tFat=0;list.forEach(p=>tFat+=(p.pva||0)*(D.simV[p.id]||0));
+  const fixo=totFixo();
+  let csv='Cód;Produto/Serviço;Preço Praticado;Prev.Vendas;Faturamento;Custos Var.;Impostos;Tx.Máquina;Tx.Aplicativo;Comissão;MC R$;MC%;Rateio;ML R$;ML%;Markup;% do Mix\n';
+  list.forEach((p,i)=>{const q=D.simV[p.id]||0,fat=(p.pva||0)*q,cv=((p.cmv||0)+(p.mo||0)+(p.frete||0))*q,imp=fat*(p.imp||0)/100,maq=fat*(p.maq||0)/100,aplic=fat*(p.aplic||0)/100,com=fat*(p.com||0)/100,mc=fat-cv-imp-maq-aplic-com,mcp=fat>0?mc/fat*100:0,rat=tFat>0?fixo*(fat/tFat):0,ml=mc-rat,mlp=fat>0?ml/fat*100:0;const custo_unit=(p.cmv||0)+(p.mo||0)+(p.frete||0),mk=q>0&&custo_unit>0?((p.pva||0)/custo_unit):0;csv+=`${String(i+1).padStart(3,'0')};${p.desc};${(p.pva||0).toFixed(2)};${q};${fat.toFixed(2)};${cv.toFixed(2)};${imp.toFixed(2)};${maq.toFixed(2)};${aplic.toFixed(2)};${com.toFixed(2)};${mc.toFixed(2)};${mcp.toFixed(1)}%;${rat.toFixed(2)};${ml.toFixed(2)};${mlp.toFixed(1)}%;${mk.toFixed(2)}×;${tFat>0?(fat/tFat*100).toFixed(1):'0.0'}%\n`});
+  const b=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='simulacao.csv';a.click();toast('CSV exportado!','ok');
+}
+
+// ANÁLISE INDIVIDUAL
+function updAiSel(){const tipo=gvs('ai-tipo')||'serv',list=tipo==='serv'?D.servs:D.revs,sel=document.getElementById('ai-prod');if(!sel)return;sel.innerHTML='<option value="">— Selecione —</option>'+list.map((p,i)=>`<option value="${i}">${p.desc}</option>`).join('')}
+function impRateioAi(){
+  const tf=totFixo(),at=D.cfg.at||30,ratUnit=at>0?tf/at:0;
+  const tipo=gvs('ai-tipo')||'serv',list=tipo==='serv'?D.servs:D.revs;
+  const idx=document.getElementById('ai-prod').value;
+  let sug=10;
+  if(idx!==''&&list[parseInt(idx)]){const pva=list[parseInt(idx)].pva||0;if(pva>0)sug=Math.round(ratUnit/pva*1000)/10}
+  document.getElementById('ai-rateio').value=sug;calcAi();
+  toast(`Rateio: ${R(tf)} ÷ ${at} atend. = ${R(ratUnit)} ≈ ${sug}% do preço`,'gd');
+}
+function calcAi(){
+  const tipo=gvs('ai-tipo')||'serv',list=tipo==='serv'?D.servs:D.revs,idx=document.getElementById('ai-prod').value;
+  const dp=document.getElementById('ai-praticado'),ds=document.getElementById('ai-sugerido');if(!dp||!ds)return;
+  if(idx===''||!list[parseInt(idx)]){dp.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--ink3);font-style:italic">Selecione um produto acima.</div>';ds.innerHTML='';return}
+  const p=list[parseInt(idx)],descPct=gv('ai-desc'),lucDes=gv('ai-lucdes')/100,ratPct=gv('ai-rateio')/100;
+  const pPrat=p.pva*(1-descPct/100);
+  const cv=(p.cmv||0)+(p.mo||0)+(p.frete||0);
+  const tv=(p.imp||0)/100+(p.maq||0)/100+(p.aplic||0)/100+(p.com||0)/100;
+  // Preço sugerido: resolve P = cv + P*tv + P*lucDes + P*ratPct → P*(1-tv-lucDes-ratPct) = cv
+  const denom=1-tv-lucDes-ratPct;
+  const pSug=denom>0.01?cv/denom:cv*5;
+  const panel=(preco)=>{
+    const{dv_imp,dv_maq,dv_aplic,dv_com,dv,mc,mcp}=calcMC(p,preco);
+    const rat=preco*ratPct,ml=mc-rat,mlp=preco>0?ml/preco*100:0,mk=cv>0?preco/cv:0;
+    const pct=(v)=>preco>0?`<span style="font-size:.72rem;color:var(--ink3);margin-right:6px">${(v/preco*100).toFixed(1)}%</span>`:'';
+    const rr=(l,v,hi=false,tip='')=>`<div class="rrow${hi?' hi':''}"><span class="rl">${l}${tip?`<span class="iw"><button class="ib">i</button><div class="tt">${tip}</div></span>`:''}</span><span style="display:flex;align-items:center">${pct(v)}<span class="rv" style="${hi?'color:var(--gold)':''}">${typeof v==='string'?v:R(v)}</span></span></div>`;
+    return{dv_imp,dv_maq,dv_aplic,dv_com,dv,mc,mcp,rat,ml,mlp,mk,html:`
+      ${rr('Preço de Venda',preco,true,'Preço base para toda a análise.')}
+      ${rr('(−) Custos Variáveis',cv,false,'CMV + MO Direta + Frete. Existem a cada venda.')}
+      <div style="padding:.15rem 0 .15rem .75rem;border-left:2px solid var(--bdr2)">
+        ${rr('CMV / Mat.-Prima',p.cmv||0)}
+        ${tipo==='serv'?rr('MO Direta',p.mo||0):''}
+        ${rr('Frete',p.frete||0)}
+      </div>
+      ${rr('(−) Despesas Variáveis',dv,false,'Impostos + taxas + comissão sobre o preço de venda.')}
+      <div style="padding:.15rem 0 .15rem .75rem;border-left:2px solid var(--bdr2)">
+        ${rr('Impostos ('+Rp(p.imp||0)+')',dv_imp)}
+        ${rr('Taxa Máquina ('+Rp(p.maq||0)+')',dv_maq)}
+        ${rr('Taxa Aplicativo ('+Rp(p.aplic||0)+')',dv_aplic)}
+        ${rr('Comissão ('+Rp(p.com||0)+')',dv_com)}
+      </div>
+      ${rr('(=) Margem de Contribuição',mc,false,'MC = Preço − Custos Var. − Desp. Var. O que sobra para pagar os fixos.')}
+      ${rr('(−) Rateio Desp. Fixas',rat,false,'Parcela dos fixos atribuída a este produto.')}
+      <div class="rrow hi"><span class="rl">Margem de Lucro <span style="font-size:.72rem;color:var(--ink3)">(${mlp.toFixed(1)}%)</span></span><span class="rv" style="color:${ml>=0?'var(--green)':'var(--red)'};font-family:'DM Serif Display',serif;font-size:1.22rem">${R(ml)}</span></div>
+      <div class="rrow"><span class="rl">Mark-up Multiplicador</span><span class="rv">${mk.toFixed(3)}×</span></div>`};
+  }
+  const panelPrat=panel(pPrat),panelSug=panel(pSug);
+  dp.innerHTML=panelPrat.html;
+  const bml=panelSug.mlp>=15?'gr':panelSug.mlp>=0?'am':'rd';
+  ds.innerHTML=`<div class="ibox gd" style="font-size:.77rem;margin-bottom:.75rem"><strong>Meta:</strong> lucro de ${(lucDes*100).toFixed(1)}% sobre o preço de venda</div>`+
+    panelSug.html+
+    `<div class="ibox ${bml}" style="margin-top:.7rem;font-size:.77rem">
+      ${panelSug.ml>=0?`✅ Cobrando <strong>${R(pSug)}</strong> você atinge ${(lucDes*100).toFixed(1)}% de lucro.`:`⚠ Impossível atingir ${(lucDes*100).toFixed(1)}% com esses custos. Reveja os custos.`}
+    </div>`;
+}
+
+// PONTO DE EQUILÍBRIO
+function impPE(){document.getElementById('pe_f').value=totFixo().toFixed(2);calcPE();toast('Fixos importados: '+R(totFixo()),'gd')}
+function calcPE(){
+  let mcPct,mcRs,fixo=gv('pe_f');
+  if(pe_from==='rs'){mcRs=gv('pe_mc_rs');const fat=gv('pe_fat')||0;mcPct=fat>0?mcRs/fat*100:30;if(!document.getElementById('pe_mc_pct').matches(':focus'))document.getElementById('pe_mc_pct').value=mcPct.toFixed(1);}
+  else{mcPct=gv('pe_mc_pct')||0;const fat=gv('pe_fat')||0;mcRs=fat*(mcPct/100);if(!document.getElementById('pe_mc_rs').matches(':focus'))document.getElementById('pe_mc_rs').value=mcRs.toFixed(2);}
+  const ld=gv('pe_ld'),fat=gv('pe_fat'),qtd=gv('pe_qtd'),ded=gv('pe_ded')/100;
+  const pe=mcPct>0?fixo/(mcPct/100):0,pee=mcPct>0?(fixo+ld)/(mcPct/100):0,ticket=qtd>0?fat/qtd:0;
+  const kpis=document.getElementById('pe-kpis');
+  if(kpis)kpis.innerHTML=[{l:'Ponto de Equilíbrio (Contábil)',v:R(pe),c:'gd'},{l:'PE Econômico (c/ lucro desejado)',v:R(pee),c:''},{l:'Ticket Médio',v:R(ticket),c:''}].map(x=>`<div class="kpi ${x.c}"><div class="klbl">${x.l}</div><div class="kval">${x.v}</div></div>`).join('');
+  const fatL=fat*(1-ded),cdD=fatL*(1-mcPct/100),mcV=fatL-cdD,luOp=mcV-fixo;
+  const dre=document.getElementById('pe-dre');
+  if(dre)dre.innerHTML=[{l:'Faturamento Bruto',v:fat},{l:'(−) Deduções sobre Vendas',v:-fat*ded},{l:'(=) Faturamento Líquido',v:fatL,hi:true},{l:'(−) Custos Diretos',v:-cdD},{l:'(=) Margem de Contribuição',v:mcV,hi:true},{l:'(−) Despesas Fixas',v:-fixo},{l:'(=) Lucro Operacional',v:luOp,hi:true}].map(x=>`<div class="rrow${x.hi?' hi':''}"><span class="rl">${x.l}</span><span class="rv" style="${x.v<0?'color:var(--red)':x.hi&&x.v>0?'color:var(--green)':''}">${R(x.v)}</span></div>`).join('');
+  const ok=fat>=pe&&fat>0,near=fat>=pe*0.7&&fat>0;
+  const diag=document.getElementById('pe-diag');
+  if(diag)diag.innerHTML=`<div class="ibox ${ok?'gr':near?'am':'rd'}"><strong>${ok?'✅ Acima do PE':near?'⚠ Próximo do PE':fat>0?'❌ Abaixo do PE':'Informe o faturamento'}</strong><br><span style="font-size:.77rem">${fat>=pe&&fat>0?`Você está ${R(fat-pe)} acima do PE.`:fat>0?`Faltam ${R(pe-fat)} para atingir o PE.`:'Preencha o faturamento atual para diagnóstico.'}</span></div>`;
+  const tick=document.getElementById('pe-ticket');
+  if(tick)tick.innerHTML=[{l:'Ticket Médio',v:R(ticket)},{l:'Vendas para atingir PE',v:ticket>0?Math.ceil(pe/ticket)+' un.':'—'},{l:'Vendas para lucro desejado',v:ticket>0?Math.ceil(pee/ticket)+' un.':'—'}].map(x=>`<div class="rrow"><span class="rl">${x.l}</span><span class="rv">${x.v}</span></div>`).join('');
+}
+
+// PROPOSTAS
+function updCliSel(){const sel=document.getElementById('pp_clisel');if(!sel)return;sel.innerHTML='<option value="">— Preencher manualmente —</option>'+D.clis.map((c,i)=>`<option value="${i}">${c.nome}</option>`).join('')}
+function fillCli(){const idx=document.getElementById('pp_clisel').value;if(idx==='')return;const c=D.clis[parseInt(idx)];document.getElementById('pp_cli').value=c.nome;document.getElementById('pp_resp').value=c.resp||'';document.getElementById('pp_cemail').value=c.email||'';document.getElementById('pp_ccid').value=c.cid||'';updPrev()}
+function addItem(desc='',qtd=1,val=0){
+  pIC++;const id=pIC,wrap=document.getElementById('prop-itens');if(!wrap)return;
+  if(pIC===1){const h=document.createElement('div');h.style.cssText='display:grid;grid-template-columns:2.2fr 1fr 1.1fr 1fr auto;gap:5px;margin-bottom:4px';h.innerHTML=['Descrição','Qtd','Valor Unit.','Subtotal',''].map(l=>`<span style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3)">${l}</span>`).join('');wrap.appendChild(h);}
+  const div=document.createElement('div');div.id='pi-'+id;div.style.cssText='display:grid;grid-template-columns:2.2fr 1fr 1.1fr 1fr auto;gap:5px;align-items:center;margin-bottom:5px';
+  const ist='padding:.4rem .65rem;background:var(--s0);border:1px solid var(--bdr);border-radius:7px;color:var(--ink);font-size:.82rem';
+  div.innerHTML=`<input id="pi_d_${id}" value="${desc.replace(/"/g,'&quot;')}" placeholder="Descrição do serviço / item" style="${ist}" oninput="updSub();updPrev()"><input id="pi_q_${id}" type="number" value="${qtd}" min="0.5" step="0.5" oninput="updSub();updPrev()" style="${ist};text-align:center"><input id="pi_v_${id}" type="number" value="${val.toFixed(2)}" min="0" step="0.01" oninput="updSub();updPrev()" style="${ist};text-align:right"><div id="pi_s_${id}" style="text-align:right;font-weight:800;font-size:.82rem;color:var(--gold);padding:.4rem .3rem">${R(qtd*val)}</div><button class="bic btn-xs" onclick="document.getElementById('pi-${id}').remove();updSub();updPrev()" style="height:28px">✕</button>`;
+  wrap.appendChild(div);if(val>0){updSub();updPrev();}
+}
+function impItemProp(){
+  const all=[...D.servs.map((p,i)=>({...p,_t:'serv',_i:i})),...D.revs.map((p,i)=>({...p,_t:'rev',_i:i}))];
+  if(!all.length){toast('Nenhum produto/serviço cadastrado — cadastre antes de inserir na proposta','');return}
+  // Guarda lista no window para o filtro acessar
+  window._selItems=all;
+  document.getElementById('m-sel-busca').value='';
+  filtrarSelItem();
+  om('m-sel-item');
+  setTimeout(()=>document.getElementById('m-sel-busca').focus(),120);
+}
+function filtrarSelItem(){
+  const all=window._selItems||[];
+  const busca=(document.getElementById('m-sel-busca')?.value||'').toLowerCase();
+  const lista=document.getElementById('m-sel-lista');
+  if(!lista)return;
+  const filtrado=busca?all.filter(p=>p.desc.toLowerCase().includes(busca)):all;
+  if(!filtrado.length){
+    lista.innerHTML=`<div style="padding:1.5rem;text-align:center;color:var(--ink3);font-style:italic">Nenhum produto encontrado.</div>`;
+    return;
+  }
+  lista.innerHTML=filtrado.map((p,i)=>{
+    const bm=p._t==='serv'?'bgd':'bgry';
+    const label=p._t==='serv'?'Serviço':'Revenda';
+    return`<div onclick="selItem('${p.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:.65rem .9rem;border:1px solid var(--bdr);border-radius:var(--r);cursor:pointer;background:var(--s0);transition:all .13s" onmouseover="this.style.background='var(--goldbg)';this.style.borderColor='var(--goldbr)'" onmouseout="this.style.background='var(--s0)';this.style.borderColor='var(--bdr)'">
+      <div>
+        <div style="font-weight:700;font-size:.87rem;color:var(--ink)">${p.desc}</div>
+        <div style="display:flex;align-items:center;gap:.4rem;margin-top:3px">
+          <span class="badge ${bm}" style="font-size:.6rem">${label}</span>
+          ${p.cat?`<span style="font-size:.72rem;color:var(--ink3)">${p.cat}</span>`:''}
+          ${p.und||p.um?`<span style="font-size:.72rem;color:var(--ink3)">· ${p.und||p.um}</span>`:''}
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:.75rem">
+        <div style="font-weight:800;font-size:.92rem;color:var(--gold)">${R(p.pva||0)}</div>
+        <div style="font-size:.68rem;color:var(--ink3)">preço atual</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function selItem(id){
+  const all=window._selItems||[];
+  const p=all.find(x=>x.id===id);
+  if(!p)return;
+  addItem(p.desc,1,p.pva||0);
+  cm('m-sel-item');
+  toast('"'+p.desc+'" adicionado à proposta','gd');
+}
+
+function getItens(){const it=[];document.querySelectorAll('#prop-itens > div:not(:first-child)').forEach(div=>{if(!div.id?.startsWith('pi-'))return;const id=div.id.split('-')[1];const d=document.getElementById('pi_d_'+id)?.value||'',q=parseFloat(document.getElementById('pi_q_'+id)?.value)||1,v=parseFloat(document.getElementById('pi_v_'+id)?.value)||0;if(d||v>0)it.push({d,q,v,sub:q*v})});return it}
+function updSub(){
+  const it=getItens(),sub=it.reduce((s,i)=>s+i.sub,0),desc=gv('pp_desc')/100,tot=sub*(1-desc);
+  document.querySelectorAll('#prop-itens > div:not(:first-child)').forEach((div,idx)=>{if(!div.id?.startsWith('pi-'))return;const id=div.id.split('-')[1];const q=parseFloat(document.getElementById('pi_q_'+id)?.value)||1,v=parseFloat(document.getElementById('pi_v_'+id)?.value)||0;const el=document.getElementById('pi_s_'+id);if(el)el.textContent=R(q*v)});
+  const el=document.getElementById('prop-sub');if(el)el.innerHTML=`Subtotal: ${R(sub)}${desc>0?` · Desconto: −${R(sub*desc)}`:''} · <strong style="color:var(--gold)">${R(tot)}</strong>`;
+}
+function updPrev(){
+  const prev=document.getElementById('prop-prev');if(!prev)return;
+  const it=getItens(),sub=it.reduce((s,i)=>s+i.sub,0),desc=gv('pp_desc')/100,tot=sub*(1-desc);
+  const prest=gvs('pp_prest')||'GO On AGRO',cli=gvs('pp_cli')||'—';
+  prev.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:.7rem;margin-bottom:.7rem;border-bottom:2px solid var(--dark)"><div><div style="font-family:'DM Serif Display',serif;font-size:.98rem;color:var(--ink)">${prest}</div><div style="font-size:.6rem;color:var(--ink3)">Proposta Comercial</div></div><div style="text-align:right"><div style="font-size:.6rem;color:var(--ink3)">Para</div><div style="font-weight:700;font-size:.84rem">${cli}</div></div></div>${it.length?`<div style="display:flex;flex-direction:column;gap:3px;margin-bottom:.7rem">${it.map(i=>`<div style="display:flex;justify-content:space-between;font-size:.77rem"><span style="color:var(--ink2)">${i.d||'—'} × ${i.q%1===0?i.q:i.q.toFixed(1)}</span><span style="font-weight:700">${R(i.sub)}</span></div>`).join('')}<div style="display:flex;justify-content:space-between;font-size:.82rem;font-weight:800;color:var(--gold);padding-top:.45rem;border-top:1px solid var(--bdr)"><span>Total</span><span>${R(tot)}</span></div></div>`:`<div style="text-align:center;color:var(--ink3);font-size:.78rem;padding:.7rem">Adicione itens à proposta.</div>`}<div style="display:flex;gap:1rem;font-size:.7rem;color:var(--ink3);flex-wrap:wrap"><span>Validade: ${gvs('pp_val')||'—'}</span><span>Pgto: ${gvs('pp_pgto')||'—'}</span></div>`;
+}
+function gerarProposta(){
+  const prest=gvs('pp_prest')||'GO On AGRO',it=getItens();
+  if(!it.length){toast('Adicione ao menos um item','');return}
+  const sub=it.reduce((s,i)=>s+i.sub,0),descPct=gv('pp_desc'),desc=descPct/100,tot=sub*(1-desc);
+  const hoje=new Date().toLocaleDateString('pt-BR'),num='PROP-'+Date.now().toString().slice(-6);
+  const linhas=it.map(i=>`<tr><td>${i.d}</td><td style="text-align:center">${i.q%1===0?i.q:i.q.toFixed(1)}</td><td style="text-align:right">${R(i.v)}</td><td style="text-align:right;font-weight:700">${R(i.sub)}</td></tr>`).join('');
+  const html=`<div class="pdoc">
+    <div class="pdoc-brand"><div><div class="pdoc-logo">${prest}</div><div class="pdoc-tag">Consultoria Pecuária · Gestão · Planejamento</div></div><div class="pdoc-num"><div class="nl">Proposta Nº</div><div class="nv">${num}</div></div></div>
+    <div class="pdoc-sub">Proposta Comercial — ${hoje}</div>
+    <div class="pdoc-grid">
+      <div><div class="pml">Prestador</div><div class="pmv">${prest}${gvs('pp_doc')?' · '+gvs('pp_doc'):''}</div></div>
+      <div><div class="pml">Contato</div><div class="pmv">${gvs('pp_email')||gvs('pp_tel')||'—'}</div></div>
+      <div><div class="pml">Endereço</div><div class="pmv">${gvs('pp_end')||'—'}</div></div>
+      <div><div class="pml">Cliente</div><div class="pmv">${gvs('pp_cli')||'—'}${gvs('pp_resp')?' · '+gvs('pp_resp'):''}</div></div>
+      <div><div class="pml">E-mail / Tel. Cliente</div><div class="pmv">${gvs('pp_cemail')||'—'}</div></div>
+      <div><div class="pml">Cidade</div><div class="pmv">${gvs('pp_ccid')||'—'}</div></div>
+    </div>
+    <h3>Serviços e Itens</h3>
+    <table><thead><tr><th>Descrição</th><th style="text-align:center;width:55px">Qtd</th><th style="text-align:right;width:105px">V. Unit.</th><th style="text-align:right;width:105px">Total</th></tr></thead><tbody>${linhas}</tbody></table>
+    ${descPct>0?`<div style="text-align:right;font-size:.8rem;color:#b02828;margin-top:.5rem">Desconto (${descPct}%): −${R(sub*desc)}</div>`:''}
+    <div class="ptot-wrap"><div class="ptot">Total: ${R(tot)}</div></div>
+    <h3>Condições Comerciais</h3>
+    <div class="pconds">
+      <div><div class="pcl">Validade</div><div class="pcv">${gvs('pp_val')}</div></div>
+      <div><div class="pcl">Pagamento</div><div class="pcv">${gvs('pp_pgto')}</div></div>
+      <div><div class="pcl">Prazo de Entrega</div><div class="pcv">${gvs('pp_prazo')}</div></div>
+    </div>
+    ${gvs('pp_obs')?`<h3>Escopo / Observações</h3><p style="color:#555;font-size:.84rem;line-height:1.75">${gvs('pp_obs')}</p>`:''}
+    ${gvs('pp_apres')?`<h3>Forma de Apresentação</h3><p style="color:#555;font-size:.84rem;line-height:1.75">${gvs('pp_apres')}</p>`:''}
+    <div class="pfoot">Esta proposta é válida por ${gvs('pp_val')} a partir de ${hoje}.<br>Para aceite: ${gvs('pp_email')||gvs('pp_tel')||prest}<br><strong>${prest}</strong>${gvs('pp_doc')?' — CNPJ: '+gvs('pp_doc'):''}${gvs('pp_end')?' · '+gvs('pp_end'):''}.</div>
+  </div>`;
+  const out=document.getElementById('prop-out');out.style.display='block';out.innerHTML=`<div style="display:flex;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap"><button class="btn btn-dk btn-sm" onclick="window.print()">🖨 Imprimir / PDF</button><button class="btn btn-gd btn-sm" onclick="salvarProposta()">Salvar Proposta</button></div>`+html;out.scrollIntoView({behavior:'smooth',block:'start'});
+  window._lp={num,data:hoje,client:gvs('pp_cli'),total:tot,valid:gvs('pp_val'),html};toast('Proposta gerada!','gd');
+}
+function salvarProposta(){if(!window._lp){gerarProposta();return}D.props.push(window._lp);SV();rdProps();updBadges();toast('Proposta salva!','gd')}
+function rdProps(){
+  const tb=document.getElementById('tb-props');if(!tb)return;
+  document.getElementById('cnt-prop').textContent=D.props.length;
+  if(!D.props.length){tb.innerHTML=empt('Nenhuma proposta salva');return}
+  tb.innerHTML=[...D.props].reverse().map((p,i)=>{const ri=D.props.length-1-i;return`<tr><td><strong style="color:var(--gold)">${p.num}</strong></td><td style="color:var(--ink3)">${p.data}</td><td>${p.client||'—'}</td><td class="r gd">${R(p.total)}</td><td style="color:var(--ink3)">${p.valid}</td><td><button class="bic btn-xs" onclick="verProp(${ri})">Ver</button> <button class="bic btn-xs" onclick="del('props',${ri})">🗑</button></td></tr>`}).join('');
+}
+function verProp(i){const p=D.props[i],out=document.getElementById('prop-out');out.style.display='block';out.innerHTML=`<div style="display:flex;gap:.6rem;margin-bottom:1rem"><button class="btn btn-dk btn-sm" onclick="window.print()">🖨 Imprimir</button></div>`+(p.html||'');out.scrollIntoView({behavior:'smooth'})}
+
+// DASHBOARD
+function rdDash(){
+  const tf=totFixo(),tp=totFolha(),td=totDesps(),all=[...D.servs,...D.revs],pm=all.length?all.reduce((s,p)=>s+(p.pva||0),0)/all.length:0;
+  const kpis=document.getElementById('dash-kpis');
+  if(kpis)kpis.innerHTML=[{l:'Total Fixo Mensal',v:R(tf),c:'dk'},{l:'Folha de Pagamento',v:R(tp),s:D.funcs.length+' colaborador(es)',c:''},{l:'Outras Despesas',v:R(td),s:D.desps.length+' item(s)',c:''},{l:'Preço Médio Praticado',v:R(pm),s:all.length+' produto(s)',c:'gd'}].map(x=>`<div class="kpi ${x.c}"><div class="klbl">${x.l}</div><div class="kval">${x.v}</div>${x.s?`<div class="ksub">${x.s}</div>`:''}</div>`).join('');
+  const chrt=document.getElementById('dash-chart'),mx=Math.max(tp,td,1);
+  if(chrt)chrt.innerHTML=[['Folha de Pagamento',tp,'var(--gold2)'],['Outras Despesas Fixas',td,'var(--green)']].map(([l,v,c])=>`<div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;justify-content:space-between;font-size:.77rem"><span style="color:var(--ink2)">${l}</span><span style="font-weight:700;color:var(--gold)">${R(v)}</span></div><div class="pbar"><div class="pfill" style="width:${(v/mx*100).toFixed(1)}%;background:${c}"></div></div></div>`).join('');
+  const sp=document.getElementById('dash-pricing');
+  if(sp){if(!all.length)sp.innerHTML=`<div style="padding:1.5rem;text-align:center;color:var(--ink3);font-style:italic">Nenhum produto cadastrado ainda.</div>`;
+    else sp.innerHTML=all.slice(-5).reverse().map(p=>{const{mc,mcp}=calcMC(p,p.pva||0);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--bdr)"><div><div style="font-weight:700;font-size:.84rem">${p.desc}</div><div style="font-size:.68rem;color:var(--ink3)">${p.cat||p.forn||''} · ${p.und||p.um||''}</div></div><div style="text-align:right"><div style="font-weight:800;color:var(--gold)">${R(p.pva||0)}</div><div style="font-size:.68rem;color:${mcp>=30?'var(--green)':mcp>=15?'var(--amb)':'var(--red)'}">${mcp.toFixed(1)}% MC</div></div></div>`}).join('')+(all.length>5?`<div style="font-size:.7rem;color:var(--ink3);margin-top:.5rem">+${all.length-5} mais…</div>`:'');}
+  const rat=D.cfg.at>0?tf/D.cfg.at:0,ind=document.getElementById('dash-ind');
+  if(ind)ind.innerHTML=[{i:'⚙',l:'Rateio por atendimento',v:R(rat),s:'Base: '+D.cfg.at+' atend./mês'},{i:'⏱',l:'Valor hora configurado',v:R(D.cfg.vh),s:'Usado no cálculo de MO'},{i:'▣',l:'Total em propostas',v:R(D.props.reduce((s,p)=>s+(p.total||0),0)),s:D.props.length+' proposta(s)'}].map(x=>`<div style="background:var(--s1);border:1px solid var(--bdr);border-radius:8px;padding:.62rem .9rem;display:flex;gap:.7rem;align-items:center"><span style="font-size:14px;flex-shrink:0">${x.i}</span><div style="flex:1"><div style="font-size:.7rem;color:var(--ink3)">${x.l}</div><div style="font-size:.67rem;color:var(--ink3)">${x.s}</div></div><div style="font-weight:800;color:var(--gold);font-size:.86rem">${x.v}</div></div>`).join('');
+}
+
+// CONFIG
+function rdCfg(){const c=D.cfg;document.getElementById('cfg_emp').value=c.emp||'';document.getElementById('cfg_cnpj').value=c.cnpj||'';document.getElementById('cfg_reg').value=c.reg||'Simples Nacional';document.getElementById('cfg_aliq').value=c.aliq||6;document.getElementById('cfg_vh').value=c.vh||150;document.getElementById('cfg_at').value=c.at||30;const r=document.getElementById('cfg-res');if(!r)return;r.innerHTML=[{l:'Produtos de Revenda',v:D.revs.length},{l:'Serviços / Produtos Próprios',v:D.servs.length},{l:'Colaboradores',v:D.funcs.length},{l:'Despesas Fixas',v:D.desps.length},{l:'Clientes',v:D.clis.length},{l:'Propostas Salvas',v:D.props.length},{l:'Total Fixo Mensal',v:R(totFixo()),hi:true}].map(x=>`<div class="rrow${x.hi?' hi':''}"><span class="rl">${x.l}</span><span class="rv" style="${x.hi?'color:var(--gold)':'color:var(--ink2)'}">${x.v}</span></div>`).join('')}
+function salvarCfg(){D.cfg={emp:gvs('cfg_emp'),cnpj:gvs('cfg_cnpj'),reg:gvs('cfg_reg'),aliq:gv('cfg_aliq'),vh:gv('cfg_vh'),at:gv('cfg_at')};SV();toast('Configurações salvas!','gd')}
+function expJSON(){const b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='goonagro_backup.json';a.click();toast('Backup exportado!','ok')}
+function impJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.revs||d.servs||d.cfg){D={...D,...d};SV();rdCfg();updBadges();toast('Importado!','ok')}else toast('Arquivo inválido','')}catch{toast('Erro ao importar','')}};r.readAsText(f)}
+function limparTudo(){D={revs:[],servs:[],funcs:[],desps:[],clis:[],simV:{},props:[],enc:{fer:11.11,t13:8.33,t13f:2.33,inss:20,sat:0,edu:0,inc:0,fgts:8,fgts2:4},cfg:{emp:'GO On Agro',cnpj:'',reg:'Simples Nacional',aliq:6,vh:150,at:30}};SV();updBadges();rdCfg();rdDash();toast('Dados apagados')}
+
+// ══════════ PRECIFICAÇÃO INTELIGENTE ══════════
+// Estado por produto: { id: { vol, preco, lucro } }
+// Se preco muda → recalcula lucro. Se lucro muda → recalcula preco.
+// Rateio: 2 passagens para resolver circularidade.
+
+let piState = {}; // { prodId: { vol, preco, lucro } }
+
+function piGet(tipo) {
+  return tipo === 'serv' ? D.servs : D.revs;
+}
+
+// Resolve preço dado lucro desejado e rateio
+// Preço = cv / (1 - tv - lucro - rateio)  → onde rateio = fixo*(fat_prod/fat_total)
+// Circularidade: fat_prod = preco * vol, fat_total = soma de todos
+// Resolvemos em 2 passagens:
+// Pass 1: estima preco sem rateio → calcula fat → calcula rateio_pct por produto
+// Pass 2: com rateio_pct conhecido, recalcula preco final
+function piCalcPrecoFromLucro(p, lucro, rateio_pct) {
+  const cv = (p.cmv||0)+(p.mo||0)+(p.frete||0);
+  const tv = (p.imp||0)/100+(p.maq||0)/100+(p.aplic||0)/100+(p.com||0)/100;
+  const denom = 1 - tv - lucro/100 - rateio_pct;
+  return denom > 0.01 ? cv/denom : cv*5;
+}
+
+function piCalcLucroFromPreco(p, preco, rateio_pct) {
+  const cv = (p.cmv||0)+(p.mo||0)+(p.frete||0);
+  const tv = (p.imp||0)/100+(p.maq||0)/100+(p.aplic||0)/100+(p.com||0)/100;
+  const mc = preco - cv - preco*tv;
+  const rat_r = preco * rateio_pct;
+  const ml = mc - rat_r;
+  return preco > 0 ? ml/preco*100 : 0;
+}
+
+function piReinitList(tipo) {
+  const list = piGet(tipo);
+  list.forEach(p => {
+    if (!piState[p.id]) {
+      piState[p.id] = { vol: 0, preco: p.pva||0, lucro: 20 };
+    }
+  });
+}
+
+function piRunCalc(tipo) {
+  const list = piGet(tipo);
+  const fixo = totFixo();
+  if (!list.length) return [];
+
+  // Pass 1 — estima faturamento sem rateio para saber o mix
+  let fatPass1 = {};
+  list.forEach(p => {
+    const st = piState[p.id] || { vol:0, preco:p.pva||0, lucro:20 };
+    const cv = (p.cmv||0)+(p.mo||0)+(p.frete||0);
+    const tv = (p.imp||0)/100+(p.maq||0)/100+(p.aplic||0)/100+(p.com||0)/100;
+    // Preço pass1: sem rateio
+    const denom1 = 1 - tv - st.lucro/100;
+    const preco1 = denom1 > 0.01 ? cv/denom1 : st.preco||cv*3;
+    fatPass1[p.id] = (st.preco > 0 ? st.preco : preco1) * (st.vol||0);
+  });
+  const fatTotal1 = Object.values(fatPass1).reduce((s,v)=>s+v,0);
+
+  // Pass 2 — com rateio proporcional, calcula preço/lucro final
+  const results = list.map(p => {
+    const st = piState[p.id] || { vol:0, preco:p.pva||0, lucro:20 };
+    const vol = st.vol || 0;
+    const cv = (p.cmv||0)+(p.mo||0)+(p.frete||0);
+    const tv = (p.imp||0)/100+(p.maq||0)/100+(p.aplic||0)/100+(p.com||0)/100;
+    const mixPct = fatTotal1 > 0 ? fatPass1[p.id]/fatTotal1 : 1/list.length;
+    const rateio_total_pct = fatPass1[p.id] > 0 ? (fixo * mixPct) / (fatPass1[p.id]||1) : 0;
+
+    let preco, lucro;
+    // Determinar modo: se usuário editou preço manualmente, calcular lucro a partir do preço
+    // Se usuário editou lucro, calcular preço
+    // Controlado pelo campo "modo" no piState
+    if (st.modo === 'preco') {
+      preco = st.preco;
+      lucro = piCalcLucroFromPreco(p, preco, rateio_total_pct);
+    } else {
+      lucro = st.lucro;
+      preco = piCalcPrecoFromLucro(p, lucro, rateio_total_pct);
+    }
+
+    const fat = preco * vol;
+    const cv_r = cv * vol;
+    const dv_r = fat * tv;
+    const rat_r = fixo * (fatTotal1 > 0 ? fatPass1[p.id]/fatTotal1 : 1/list.length);
+    const mc = fat - cv_r - dv_r;
+    const mcp = fat > 0 ? mc/fat*100 : 0;
+    const ml = mc - rat_r;
+    const mlp = fat > 0 ? ml/fat*100 : 0;
+    const markup = cv > 0 ? preco/cv : 0;
+    return {p, vol, preco, lucro, fat, cv_r, dv_r, rat_r, mc, mcp, ml, mlp, markup, mixPct:mixPct*100, rateio_total_pct};
+  });
+
+  return results;
+}
+
+function rdPrecInt() {
+  const tipo = (document.getElementById('pi-tipo')||{}).value || 'serv';
+  const list = piGet(tipo);
+  const tb = document.getElementById('tb-pi');
+  const kpis = document.getElementById('pi-kpis');
+  if (!tb) return;
+
+  piReinitList(tipo);
+
+  if (!list.length) {
+    tb.innerHTML = empt('Nenhum produto cadastrado. Cadastre serviços ou produtos primeiro.');
+    if(kpis)kpis.innerHTML='';
+    return;
+  }
+
+  const rows = piRunCalc(tipo);
+  const fixo = totFixo();
+  let tFat=0, tCV=0, tDV=0, tRAT=0, tMC=0, tML=0, tVol=0;
+  rows.forEach(r=>{ tFat+=r.fat; tCV+=r.cv_r; tDV+=r.dv_r; tRAT+=r.rat_r; tMC+=r.mc; tML+=r.ml; tVol+=r.vol; });
+
+  const is = (id,v) => { const el=document.getElementById(id); if(el)el.textContent=v; };
+  is('pi-t-vol', tVol+'un');
+  is('pi-t-fat', R(tFat));
+  is('pi-t-cv', R(tCV));
+  is('pi-t-dv', R(tDV));
+  is('pi-t-rat', R(tRAT));
+  is('pi-t-mc', R(tMC));
+  is('pi-t-ml', R(tML));
+
+  const inp = s => `padding:.38rem .6rem;background:var(--s0);border:1px solid var(--bdr);border-radius:6px;color:var(--ink);font-size:.82rem;font-weight:700;text-align:right`;
+  const inpOk = s => `padding:.38rem .6rem;background:var(--greenbg);border:1px solid var(--greenbr);border-radius:6px;color:var(--green);font-size:.82rem;font-weight:800;text-align:right`;
+
+  tb.innerHTML = rows.map((r,i) => {
+    const {p,vol,preco,lucro,fat,cv_r,dv_r,rat_r,mc,mcp,ml,mlp,markup,mixPct} = r;
+    const bml = mlp>=15?'bgr':mlp>=0?'bam':'brd';
+    const bmc = mcp>=30?'bgr':mcp>=15?'bam':'brd';
+    const bpreco = preco > (p.pva||0)*1.05 ? 'color:var(--green)' : preco < (p.pva||0)*0.95 ? 'color:var(--red)' : 'color:var(--gold)';
+    return `<tr>
+      <td class="c" style="color:var(--ink3)">${String(i+1).padStart(3,'0')}</td>
+      <td><strong>${p.desc}</strong>${p.cat?`<br><span class="badge bgd" style="font-size:.62rem">${p.cat}</span>`:''}</td>
+      <td class="c" style="color:var(--ink3)">${p.und||p.um||'Un.'}</td>
+      <td class="c">
+        <input type="number" value="${vol}" min="0" style="width:68px;${inp()}"
+          onchange="piSetVol('${p.id}','${tipo}',+this.value)">
+      </td>
+      <td class="r">${R(fat)}</td>
+      <td class="r">${R(cv_r)}</td>
+      <td class="r">${R(dv_r)}</td>
+      <td class="r">${R(rat_r)}<br><span style="font-size:.68rem;color:var(--ink3)">${mixPct.toFixed(1)}% mix</span></td>
+      <td class="r"><span class="badge ${bmc}">${mcp.toFixed(1)}%</span></td>
+      <td class="c">
+        <input type="number" value="${lucro.toFixed(1)}" min="0" max="100" step="0.5"
+          style="width:68px;${lucro>=15?inpOk():inp()}"
+          onchange="piSetLucro('${p.id}','${tipo}',+this.value)"
+          title="Edite o % de lucro — o preço é recalculado automaticamente">
+        <span style="font-size:.72rem;color:var(--ink3)">%</span>
+      </td>
+      <td class="r">
+        <input type="number" value="${preco.toFixed(2)}" min="0" step="0.01"
+          style="width:90px;${inpOk()};${bpreco}"
+          onchange="piSetPreco('${p.id}','${tipo}',+this.value)"
+          title="Edite o preço — o % de lucro é recalculado automaticamente">
+        ${p.pva>0?`<br><span style="font-size:.68rem;color:var(--ink3)">atual: ${R(p.pva)}</span>`:''}
+      </td>
+      <td class="r">${markup.toFixed(2)}×</td>
+      <td class="r">${vol>0?mixPct.toFixed(1)+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+
+  if(kpis) {
+    const tMcp = tFat>0?tMC/tFat*100:0;
+    const tMlp = tFat>0?tML/tFat*100:0;
+    kpis.innerHTML = [
+      {l:'Faturamento total previsto',v:R(tFat),c:'dk'},
+      {l:'Custos diretos',v:R(tCV),c:''},
+      {l:'Desp. variáveis',v:R(tDV),c:''},
+      {l:'Margem contribuição',v:`${R(tMC)} (${tMcp.toFixed(1)}%)`,c:'gd'},
+      {l:'Lucro operacional',v:R(tML),c:tML>=0?'gr':''},
+    ].map(x=>`<div class="kpi ${x.c}"><div class="klbl">${x.l}</div><div class="kval">${x.v}</div></div>`).join('');
+  }
+}
+
+function piSetVol(id, tipo, val) {
+  if (!piState[id]) piState[id] = {vol:0,preco:0,lucro:20};
+  piState[id].vol = val;
+  rdPrecInt();
+}
+function piSetLucro(id, tipo, val) {
+  if (!piState[id]) piState[id] = {vol:0,preco:0,lucro:20};
+  piState[id].lucro = val;
+  piState[id].modo = 'lucro';
+  rdPrecInt();
+}
+function piSetPreco(id, tipo, val) {
+  if (!piState[id]) piState[id] = {vol:0,preco:0,lucro:20};
+  piState[id].preco = val;
+  piState[id].modo = 'preco';
+  rdPrecInt();
+}
+function piAplicarGlobal() {
+  const tipo = (document.getElementById('pi-tipo')||{}).value || 'serv';
+  const lucro = parseFloat(document.getElementById('pi-lucro-global')?.value)||20;
+  const list = piGet(tipo);
+  list.forEach(p => {
+    if (!piState[p.id]) piState[p.id] = {vol:0,preco:p.pva||0,lucro};
+    piState[p.id].lucro = lucro;
+    piState[p.id].modo = 'lucro';
+  });
+  rdPrecInt();
+}
+function piAplicarCadastro() {
+  const tipo = (document.getElementById('pi-tipo')||{}).value || 'serv';
+  const list = piGet(tipo);
+  const rows = piRunCalc(tipo);
+  let updated = 0;
+  rows.forEach(r => {
+    const idx = list.findIndex(p=>p.id===r.p.id);
+    if (idx>=0 && r.preco>0) { list[idx].pva = parseFloat(r.preco.toFixed(2)); updated++; }
+  });
+  SV();
+  rdPrecInt();
+  toast(`${updated} preço(s) aplicado(s) ao cadastro!`,'gd');
+}
+function piExpCSV() {
+  const tipo = (document.getElementById('pi-tipo')||{}).value || 'serv';
+  const rows = piRunCalc(tipo);
+  if (!rows.length) { toast('Sem dados',''); return; }
+  let csv = 'Produto;Volume;Faturamento;Custo Dir.;Desp. Var.;Rateio;MC R$;MC%;Lucro%;Preço Sugerido;Markup;% Mix\n';
+  rows.forEach(r => {
+    csv += `${r.p.desc};${r.vol};${r.fat.toFixed(2)};${r.cv_r.toFixed(2)};${r.dv_r.toFixed(2)};${r.rat_r.toFixed(2)};${r.mc.toFixed(2)};${r.mcp.toFixed(1)}%;${r.mlp.toFixed(1)}%;${r.preco.toFixed(2)};${r.markup.toFixed(2)}x;${r.mixPct.toFixed(1)}%\n`;
+  });
+  const b = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='precos_sugeridos.csv'; a.click();
+  toast('CSV exportado!','ok');
+}
+
+// ══════════ GUIA INTERNO ══════════
+const GUIA_STEPS = [
+  {
+    ico:'⚙',
+    titulo:'Antes de tudo: Configurações',
+    nav:'cfg',
+    label:'Menu → Configurações',
+    desc:'Preencha o <strong>valor hora padrão</strong> (quanto vale 1 hora do seu trabalho) e a quantidade de <strong>atendimentos por mês</strong>. Esses dois números são usados em todos os cálculos de rateio e mão de obra.',
+    campos:['Valor hora padrão (ex: R$150)', 'Atendimentos/mês (ex: 30)', 'Regime tributário e alíquota'],
+    tip:'Só precisa fazer isso uma vez. Pode ajustar a qualquer momento.'
+  },
+  {
+    ico:'👥',
+    titulo:'Cadastre sua equipe',
+    nav:'folha',
+    label:'Menu → Folha de Pagamento',
+    desc:'Se você tem colaboradores CLT, cadastre cada um com o salário bruto. Os <strong>encargos trabalhistas e sociais</strong> (FGTS, INSS, férias, 13º) são calculados automaticamente. O custo total da equipe entra nas despesas fixas sozinho.',
+    campos:['Nome, cargo, setor e data de contratação','Salário bruto e carga horária','Vale transporte, refeição e convênio médico'],
+    tip:'Sem equipe CLT? Pule esta etapa.'
+  },
+  {
+    ico:'💸',
+    titulo:'Cadastre as despesas fixas',
+    nav:'desps',
+    label:'Menu → Despesas Fixas',
+    desc:'Registre todos os gastos mensais que existem independente de quantos clientes você atende: aluguel, energia, internet, contabilidade, sistemas, combustível. A <strong>folha de pagamento já é somada automaticamente</strong> — não precisa lançar de novo.',
+    campos:['Aluguel + IPTU','Energia elétrica, água, internet','Contabilidade, sistemas de gestão','Marketing, combustível, manutenção'],
+    tip:'O total de despesas fixas define quanto cada produto precisa cobrir mensalmente.'
+  },
+  {
+    ico:'⚙',
+    titulo:'Cadastre seus serviços',
+    nav:'cad-serv',
+    label:'Menu → Serviços / Produtos',
+    desc:'Registre cada serviço que você presta: consultoria, visita técnica, formulação, treinamento. Informe os custos diretos e os percentuais de encargos. O campo <strong>Preço de Venda Atual</strong> é fundamental — é o preço que você cobra hoje.',
+    campos:['CMV / Matéria-prima (insumos do serviço)','Custo MO Direta (horas × valor/hora)','Frete / Deslocamento','Impostos % e taxas (cartão, aplicativo, comissão)','Preço de Venda Atual (o que você cobra hoje)'],
+    tip:'Sem preço atual? Coloque uma estimativa. Você vai refiná-lo na Precificação Inteligente.'
+  },
+  {
+    ico:'◆',
+    titulo:'Analise o preço atual (Pricing)',
+    nav:'pricing-serv',
+    label:'Menu → Pricing — Serviços',
+    desc:'Com os cadastros feitos, acesse o Pricing. O sistema mostra dois cenários por produto: <strong>G</strong> (preço cheio) e <strong>N</strong> (com desconto). A coluna <strong>MC %</strong> é o termômetro — abaixo de 20% o preço precisa ser revisado.',
+    campos:['G = preço cheio que você pratica hoje','N = preço após desconto (configure o % no topo)','MC % = Margem de Contribuição — o indicador principal'],
+    tip:'MC % abaixo de 20%: sinal de alerta. Você pode estar cobrando menos do que deveria.'
+  },
+  {
+    ico:'✦',
+    titulo:'Calcule o preço ideal para todos',
+    nav:'prec-int',
+    label:'Menu → ✦ Preços Sugeridos',
+    desc:'Esta é a tela principal. Informe o <strong>volume de vendas previsto</strong> de cada produto e o <strong>% de lucro desejado</strong>. O sistema calcula o preço ideal de todos de uma vez, com rateio automático. Os campos são bidirecionais: mude o preço → vê o lucro. Mude o lucro → vê o preço.',
+    campos:['Volume de vendas por produto (quantos por mês)','% de lucro global (aplica a todos) ou individual','Preço e % de lucro são editáveis e bidirecionais','Botão "Aplicar ao cadastro" quando estiver satisfeito'],
+    tip:'Após ajustar os preços, clique em "Aplicar preços ao cadastro" para salvar.'
+  },
+  {
+    ico:'▲',
+    titulo:'Simule o resultado do mês',
+    nav:'sim',
+    label:'Menu → Simulação de Resultados',
+    desc:'Com os preços definidos, simule o faturamento do mês. Informe a previsão de vendas de cada produto e veja o faturamento, margem de contribuição e lucro operacional projetados. O <strong>rateio é proporcional ao mix</strong> — quem fatura mais carrega mais fixo.',
+    campos:['Previsão de vendas por produto','Faturamento = preço × volume','Margem de lucro após rateio de fixos','% do Mix: participação de cada produto'],
+    tip:'Use a Simulação para testar cenários: "e se eu vender 5 consultorias a mais?"'
+  },
+  {
+    ico:'⚖',
+    titulo:'Veja o ponto de equilíbrio',
+    nav:'pe',
+    label:'Menu → Ponto de Equilíbrio',
+    desc:'Descubra quanto precisa faturar por mês para não ter prejuízo (<strong>PE Contábil</strong>) e para atingir o lucro desejado (<strong>PE Econômico</strong>). Clique em "↑ importar" para puxar os fixos automaticamente.',
+    campos:['PE Contábil: faturamento mínimo para cobrir tudo','PE Econômico: faturamento para atingir lucro desejado','DRE: mostra como o faturamento vira lucro passo a passo','Ticket Médio e quantas vendas são necessárias'],
+    tip:'Use o PE como meta mínima do mês — abaixo disso é prejuízo.'
+  },
+  {
+    ico:'📄',
+    titulo:'Gere propostas profissionais',
+    nav:'proposta',
+    label:'Menu → Propostas',
+    desc:'Gere propostas com identidade GO On AGRO prontas para enviar. Cadastre os clientes primeiro, depois selecione da lista. Os serviços podem ser importados do cadastro com o preço já preenchido — <strong>tudo editável antes de gerar</strong>.',
+    campos:['Cadastre clientes em Menu → Clientes','Na Proposta, selecione o cliente da lista','Clique "+ Do Cadastro" para importar serviços com preço','Edite valores, condições e observações','Clique "Gerar Proposta" → "Imprimir / PDF"'],
+    tip:'O preview atualiza em tempo real enquanto você preenche.'
+  },
+];
+
+let guiaStep = 0;
+
+function abrirGuia() {
+  document.getElementById('guia-ov').classList.add('on');
+  const noShow = localStorage.getItem('guia-nao-mostrar') === '1';
+  const cb = document.getElementById('guia-nao-mostrar');
+  if(cb) cb.checked = noShow;
+  guiaStep = 0;
+  renderGuiaStep();
+}
+function fecharGuia() {
+  document.getElementById('guia-ov').classList.remove('on');
+}
+function guiaNaoMostrar(checked) {
+  localStorage.setItem('guia-nao-mostrar', checked ? '1' : '0');
+}
+function guiaNext() {
+  if (guiaStep < GUIA_STEPS.length-1) { guiaStep++; renderGuiaStep(); }
+  else fecharGuia();
+}
+function guiaPrev() {
+  if (guiaStep > 0) { guiaStep--; renderGuiaStep(); }
+}
+function guiaIrPara(navId) {
+  fecharGuia();
+  nav(navId, null);
+}
+function renderGuiaStep() {
+  const s = GUIA_STEPS[guiaStep];
+  const total = GUIA_STEPS.length;
+
+  // dots
+  const dots = document.getElementById('guia-dots');
+  if(dots) dots.innerHTML = GUIA_STEPS.map((_,i)=>
+    `<div style="width:${i===guiaStep?20:6}px;height:6px;border-radius:99px;background:${i===guiaStep?'var(--gold3)':'rgba(255,255,255,.2)'};transition:all .2s;cursor:pointer" onclick="guiaStep=${i};renderGuiaStep()"></div>`
+  ).join('');
+
+  // content
+  const cont = document.getElementById('guia-steps');
+  if(!cont) return;
+  cont.innerHTML = `
+    <div style="padding:1.4rem 1.5rem">
+      <!-- step counter -->
+      <div style="font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:.5rem">Passo ${guiaStep+1} de ${total}</div>
+
+      <!-- icon + title -->
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.9rem">
+        <div style="width:44px;height:44px;background:var(--dark);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${s.ico}</div>
+        <div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--ink);line-height:1.2">${s.titulo}</div>
+          <div style="font-size:.68rem;font-weight:800;color:var(--ink3);margin-top:2px;letter-spacing:.04em">${s.label}</div>
+        </div>
+      </div>
+
+      <!-- description -->
+      <div style="font-size:.84rem;color:var(--ink2);line-height:1.75;margin-bottom:1rem">${s.desc}</div>
+
+      <!-- campos -->
+      <div style="background:var(--s1);border-radius:var(--r);padding:.85rem 1rem;margin-bottom:1rem">
+        <div style="font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:.5rem">O que preencher</div>
+        <div style="display:flex;flex-direction:column;gap:.35rem">
+          ${s.campos.map(c=>`<div style="display:flex;align-items:flex-start;gap:.5rem;font-size:.81rem;color:var(--ink2)"><span style="color:var(--gold2);margin-top:2px;flex-shrink:0">✓</span>${c}</div>`).join('')}
+        </div>
+      </div>
+
+      <!-- tip -->
+      <div style="background:var(--goldbg);border:1px solid var(--goldbr);border-radius:var(--r);padding:.65rem .9rem;font-size:.78rem;color:var(--ink2);line-height:1.6;margin-bottom:1.25rem">
+        <span style="font-weight:800;color:var(--gold)">Dica: </span>${s.tip}
+      </div>
+
+      <!-- ir para a aba -->
+      <button class="btn btn-dk" style="width:100%;justify-content:center" onclick="guiaIrPara('${s.nav}')">
+        Ir para: ${s.titulo} →
+      </button>
+
+      <!-- progress bar -->
+      <div style="margin-top:1.25rem">
+        <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--ink3);margin-bottom:4px">
+          <span>Progresso</span><span>${guiaStep+1}/${total}</span>
+        </div>
+        <div style="height:4px;background:var(--s2);border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${((guiaStep+1)/total*100).toFixed(0)}%;background:var(--gold2);border-radius:99px;transition:width .3s"></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Expose functions to global scope for HTML onclick handlers ──
+const _expose=['nav','cm','om','toggleH','syncSl','om_rev','sv_rev','om_serv','sv_serv',
+  'om_func','pvFunc','sv_func','om_desp','sv_desp','om_cli','sv_cli','del',
+  'buildEnc','updEnc','rdPricingServ','rdPricingRev','expPricingServ','expPricingRev',
+  'rdSim','expSim','updAiSel','impRateioAi','calcAi','impPE','calcPE',
+  'updCliSel','fillCli','addItem','impItemProp','updSub','updPrev','gerarProposta',
+  'salvarProposta','verProp','rdCfg','salvarCfg','expJSON','impJSON','limparTudo',
+  'rdPrecInt','piAplicarGlobal','piAplicarCadastro','piExpCSV','piSetVol','piSetLucro','piSetPreco',
+  'abrirGuia','fecharGuia','guiaNaoMostrar','guiaNext','guiaPrev','guiaIrPara','renderGuiaStep',
+  'SV','rdDash','simSetVol','filtrarSelItem','selItem'];
+_expose.forEach(fn=>{try{if(typeof eval(fn)==='function')window[fn]=eval(fn);}catch(ex){}});
+
+// BOOT
+LD();
+buildEnc();
+const{tr:etr,so:eso,tot:etot}=encTot();
+const tt=document.getElementById('enc-trab-tot');if(tt)tt.textContent=etr.toFixed(2)+'%';
+const st=document.getElementById('enc-soc-tot');if(st)st.textContent=eso.toFixed(2)+'%';
+const et=document.getElementById('enc-tot-lbl');if(et)et.textContent=etot.toFixed(2)+'%';
+updBadges();rdDash();
+if(!document.getElementById('prop-itens').children.length)addItem();
+// Auto-abrir guia na primeira visita
+if(localStorage.getItem('guia-nao-mostrar')!=='1'){
+  setTimeout(()=>abrirGuia(),600);
+}
+})();
+</script>
+</body>
+</html>
