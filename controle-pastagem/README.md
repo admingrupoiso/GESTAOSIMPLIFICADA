@@ -55,7 +55,7 @@ Tudo vive em `let`/`const` no topo de `04-app.js`, persistido como um JSON só e
 - **`todos()`** — a função que junta tudo isso: `(ocultarBase ? [] : baseRows com edicoes por cima) + extras`. É por onde TUDO passa — filtro, tabela, relatório, prova real (removida, ver Changelog), tudo lê daqui.
 - **`catalogoProdutos`** / **`modulosRegistrados`** — cadastros próprios (produto e módulo
   não são mais só texto livre dentro do pasto).
-- **`mapaProp`** — `{arquivoNome, kmlTexto, talhoes:[{nomeOriginal, nomeModulo, areaHa}], vista, mostrarRotulos}`.
+- **`mapaProp`** — `{arquivoNome, kmlTexto, talhoes:[{nomeOriginal, nomeModulo, areaHa, tipo, comprimentoM, medida, gerado?, origemIdx?, geometria?, recortado?}], vista, mostrarRotulos, ultimaLeitura}`.
   O KML cru fica salvo (não só o resultado do parse), pra poder re-renderizar o mapa sem
   precisar o usuário subir o arquivo de novo. `vista` é `{lat,lng,zoom}` — onde a pessoa
   parou de olhar; é o que faz o mapa voltar no mesmo enquadramento em vez de reenquadrar a
@@ -193,6 +193,21 @@ seguiu se mostrando confiável o tempo todo.
   como no Google Earth. Linha não recebe rótulo fixo — dezenas delas com o mesmo nome
   empilhariam texto por cima do pasto; o comprimento aparece ao passar o mouse e na lista,
   que agora separa áreas de linhas e conta as duas coisas em separado.
+
+- **v16**: **recorte em piquetes**, **satélite na tabela** e **"Ver cadastro"**. Na lista de
+  talhões, uma área ganhou o botão "Recortar pelas linhas": as arestas do polígono e das
+  linhas de divisão viram um grafo planar (segmentos nodados nas interseções, pontas
+  soltas podadas, faces extraídas virando sempre à direita — `facesDoRecorte`), e cada
+  face de dentro vira um piquete novo com área geodésica própria, nomeado "<área> 1..N"
+  de cima pra baixo. Os piquetes não existem no KML, então guardam a própria geometria
+  em `talhoes[].geometria`; `montarFeaturesDoMapa()` junta os dois (arquivo + gerados) e
+  alimenta tanto o mapa principal quanto o **mini-mapa de satélite da aba Pastos**, que
+  aparece em cima da tabela com o módulo filtrado em destaque (é pra isso que "Ver pastos
+  na tabela" leva agora: a tabela e o pedaço de terra de que ela fala). "Desfazer recorte"
+  apaga os gerados e libera a área. Cada talhão também ganhou "Ver cadastro →", que abre o
+  pasto do módulo no formulário (ou monta um novo já com módulo e área) — antes só dava
+  clicando no desenho. Linha que não atravessa a área de lado a lado não recorta (vira
+  ponta solta e é podada); o aviso do recorte diz quando sobrou área fora dos piquetes.
 
 ## Pendências conhecidas (não implementadas ainda)
 

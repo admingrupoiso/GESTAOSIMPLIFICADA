@@ -65,6 +65,13 @@
     <span class="badge-manejo" style="background:#ED7D31">Roçada</span>
     — recriada a partir da formatação condicional da planilha original.
   </div>
+  <div id="mapaTabelaCartao" class="cartao" style="display:none;padding:10px 12px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="dica" id="mapaTabelaTitulo" style="font-size:11.5px"></span>
+      <button class="btn fantasma" onclick="abrirMapaCompleto()">Abrir no mapa completo →</button>
+    </div>
+    <div id="mapaTabela"></div>
+  </div>
   <div class="envoltorio-tabela" style="max-height:600px;overflow-y:auto">
     <table id="tabela">
       <thead><tr id="cabecalho"></tr></thead>

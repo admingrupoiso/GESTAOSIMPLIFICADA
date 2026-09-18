@@ -1055,6 +1055,11 @@ function ativarAbaMapa(){
 const COR_MEDIDA='#F2C744';   // amarelo de régua, igual ao traço do Google Earth
 function estiloTalhao(destacado, nomeModulo, idx){
   const t = (idx!=null) ? mapaProp.talhoes[idx] : null;
+  // Área que já foi recortada em piquetes: fica só o contorno pontilhado, de referência —
+  // quem tem cor, rótulo e cadastro agora são os piquetes gerados.
+  if(t && t.recortado){
+    return {color: destacado ? '#F5EAC8' : '#c9c2a3', weight:2, dashArray:'2 6', fill:false};
+  }
   // Linha de medida/divisa: tracejado amarelo, fino — é marcação de divisão, não pasto.
   if(t && t.medida && t.tipo!=='area'){
     return destacado
@@ -1190,6 +1195,198 @@ function areaTalhaoHa(feature){
   if(norm.geometry.type==='MultiPolygon') return areaGeodesicaHa(norm.geometry.coordinates[0][0]);
   return null;
 }
+// ---- Recorte de uma área em piquetes pelas linhas de divisão -----------------
+// O que a Renata desenha no Google Earth: um polígono (o pasto) e várias "Medida da
+// linha" cortando ele de lado a lado. Cada faixa entre duas linhas é um piquete. Aqui
+// isso vira geometria de verdade: as arestas do polígono e das linhas formam um grafo
+// planar; cada face fechada desse grafo é um piquete, com área própria.
+//
+// Passos, em metros (projeção equirretangular local — a fazenda é pequena demais pra
+// a curvatura importar):
+//   1. junta as arestas do polígono e das linhas que o cruzam, esticando cada linha uns
+//      metros nas pontas (a régua raramente encosta exatamente na cerca);
+//   2. "noda": corta todo segmento onde ele cruza outro, e cola vértices iguais;
+//   3. poda as pontas soltas (a sobra da linha do lado de fora, linha que não atravessou);
+//   4. caminha o grafo virando sempre à direita pra fechar cada face;
+//   5. fica só com as faces de dentro do polígono, ordenadas de cima pra baixo.
+const RECORTE_ESTICAR_M=25;      // quanto cada linha é prolongada nas pontas
+const RECORTE_SNAP_M=0.05;       // vértices a menos disso viram um só
+const RECORTE_AREA_MINIMA=0.002; // fração da área base abaixo da qual a face é sobra (fatia de nada)
+
+function projetorLocal(lat0, lon0){
+  const R=6378137, rad=Math.PI/180, k=Math.cos(lat0*rad);
+  return {
+    para:(c)=>[ (c[0]-lon0)*rad*R*k, (c[1]-lat0)*rad*R ],
+    volta:(p)=>[ p[0]/(rad*R*k)+lon0, p[1]/(rad*R)+lat0 ],
+  };
+}
+function intersecaoSegmentos(a,b,c,d){
+  const r=[b[0]-a[0], b[1]-a[1]], sg=[d[0]-c[0], d[1]-c[1]];
+  const den=r[0]*sg[1]-r[1]*sg[0];
+  if(Math.abs(den)<1e-12) return null;          // paralelos/colineares: sem ponto único
+  const qp=[c[0]-a[0], c[1]-a[1]];
+  const t=(qp[0]*sg[1]-qp[1]*sg[0])/den, u=(qp[0]*r[1]-qp[1]*r[0])/den;
+  const eps=1e-9;
+  if(t<-eps||t>1+eps||u<-eps||u>1+eps) return null;
+  return {t, ponto:[a[0]+t*r[0], a[1]+t*r[1]]};
+}
+function pontoDentroDoAnel(p, anel){
+  let dentro=false;
+  for(let i=0,j=anel.length-1;i<anel.length;j=i++){
+    const xi=anel[i][0], yi=anel[i][1], xj=anel[j][0], yj=anel[j][1];
+    const cruza=((yi>p[1])!==(yj>p[1])) && (p[0] < (xj-xi)*(p[1]-yi)/((yj-yi)||1e-12)+xi);
+    if(cruza) dentro=!dentro;
+  }
+  return dentro;
+}
+function areaAssinada(anel){
+  let a=0;
+  for(let i=0,j=anel.length-1;i<anel.length;j=i++) a+=(anel[j][0]*anel[i][1]-anel[i][0]*anel[j][1]);
+  return a/2;
+}
+function esticarLinha(pts, m){
+  if(pts.length<2) return pts;
+  const out=pts.slice();
+  const [a,b]=[pts[0],pts[1]]; const l1=Math.hypot(b[0]-a[0],b[1]-a[1])||1;
+  out[0]=[a[0]-(b[0]-a[0])/l1*m, a[1]-(b[1]-a[1])/l1*m];
+  const [c,d]=[pts[pts.length-2],pts[pts.length-1]]; const l2=Math.hypot(d[0]-c[0],d[1]-c[1])||1;
+  out[out.length-1]=[d[0]+(d[0]-c[0])/l2*m, d[1]+(d[1]-c[1])/l2*m];
+  return out;
+}
+// Recebe o anel do polígono base e as linhas (todas já em metros). Devolve as faces
+// internas, cada uma como anel fechado em metros, ordenadas de cima pra baixo.
+function facesDoRecorte(anelBase, linhas){
+  // 1. segmentos
+  const segs=[];
+  for(let i=0;i<anelBase.length-1;i++) segs.push([anelBase[i], anelBase[i+1]]);
+  linhas.forEach(l=>{ const e=esticarLinha(l, RECORTE_ESTICAR_M); for(let i=0;i<e.length-1;i++) segs.push([e[i],e[i+1]]); });
+  // 2. nodar
+  const cortes=segs.map(()=>[0,1]);
+  for(let i=0;i<segs.length;i++) for(let j=i+1;j<segs.length;j++){
+    const x=intersecaoSegmentos(segs[i][0],segs[i][1],segs[j][0],segs[j][1]);
+    if(!x) continue;
+    cortes[i].push(x.t);
+    const y=intersecaoSegmentos(segs[j][0],segs[j][1],segs[i][0],segs[i][1]);
+    if(y) cortes[j].push(y.t);
+  }
+  const chave=(p)=>Math.round(p[0]/RECORTE_SNAP_M)+','+Math.round(p[1]/RECORTE_SNAP_M);
+  const nos=new Map();       // chave -> {p, viz:Set(chave)}
+  const no=(p)=>{ const k=chave(p); if(!nos.has(k)) nos.set(k,{p:[p[0],p[1]], viz:new Set()}); return k; };
+  const liga=(ka,kb)=>{ if(ka===kb) return; nos.get(ka).viz.add(kb); nos.get(kb).viz.add(ka); };
+  segs.forEach((sg,i)=>{
+    const ts=[...new Set(cortes[i].map(t=>Math.min(1,Math.max(0,t))))].sort((a,b)=>a-b);
+    let anterior=null;
+    ts.forEach(t=>{
+      const k=no([sg[0][0]+(sg[1][0]-sg[0][0])*t, sg[0][1]+(sg[1][1]-sg[0][1])*t]);
+      if(anterior!==null) liga(anterior,k);
+      anterior=k;
+    });
+  });
+  // 3. podar pontas soltas
+  let mudou=true;
+  while(mudou){
+    mudou=false;
+    for(const [k,n] of nos){
+      if(n.viz.size<=1){
+        n.viz.forEach(v=>nos.get(v).viz.delete(k));
+        nos.delete(k); mudou=true;
+      }
+    }
+  }
+  // 4. faces: meia-aresta u->v; em v, sai pela vizinha imediatamente à direita da volta
+  const ang=(ka,kb)=>{ const a=nos.get(ka).p, b=nos.get(kb).p; return Math.atan2(b[1]-a[1], b[0]-a[0]); };
+  const ordem=new Map();
+  for(const [k,n] of nos) ordem.set(k, [...n.viz].sort((x,y)=>ang(k,x)-ang(k,y)));
+  const visitada=new Set();
+  const faces=[];
+  for(const [u,n] of nos) for(const v of n.viz){
+    if(visitada.has(u+'>'+v)) continue;
+    const anel=[]; let a=u, b=v, passos=0;
+    while(!visitada.has(a+'>'+b) && passos++<100000){
+      visitada.add(a+'>'+b);
+      anel.push(nos.get(a).p);
+      const lista=ordem.get(b);
+      const i=lista.indexOf(a);
+      const prox=lista[(i-1+lista.length)%lista.length];
+      a=b; b=prox;
+    }
+    if(anel.length>=3) faces.push(anel);
+  }
+  // 5. só as de dentro, com área que valha um piquete
+  const areaBase=Math.abs(areaAssinada(anelBase));
+  const boas=faces.filter(f=>{
+    const A=areaAssinada(f);
+    if(A<=0) return false;                                  // face externa (sentido horário)
+    if(A<areaBase*RECORTE_AREA_MINIMA) return false;        // sobra/fatia de nada
+    const cx=f.reduce((t,p)=>t+p[0],0)/f.length, cy=f.reduce((t,p)=>t+p[1],0)/f.length;
+    return pontoDentroDoAnel([cx,cy], anelBase);
+  });
+  boas.sort((f,g)=>{
+    const cf=[f.reduce((t,p)=>t+p[0],0)/f.length, f.reduce((t,p)=>t+p[1],0)/f.length];
+    const cg=[g.reduce((t,p)=>t+p[0],0)/g.length, g.reduce((t,p)=>t+p[1],0)/g.length];
+    return (cg[1]-cf[1]) || (cf[0]-cg[0]);                   // norte primeiro, depois oeste
+  });
+  return boas;
+}
+// Recorta o talhão `idx` (uma área) usando todas as linhas de divisão que o cruzam.
+// Os piquetes viram novos talhões no fim de mapaProp.talhoes, com a geometria embutida.
+function recortarTalhaoPelasLinhas(idx){
+  const base=mapaProp.talhoes[idx];
+  if(!base || base.tipo!=='area'){ toast('Só dá pra recortar uma área (polígono).', true); return; }
+  if(base.recortado){ toast('Esse talhão já foi recortado — desfaça o recorte antes de refazer.', true); return; }
+  let feats;
+  try{ feats=montarFeaturesDoMapa(); }catch(e){ toast('Não consegui ler o mapa: '+e.message, true); return; }
+  const fBase=feats.find(f=>f._idxTalhao===idx);
+  if(!fBase || !fBase.geometry || fBase.geometry.type!=='Polygon'){ toast('Não encontrei o polígono desse talhão.', true); return; }
+  const anelLonLat=fBase.geometry.coordinates[0];
+  const lat0=anelLonLat.reduce((t,c)=>t+c[1],0)/anelLonLat.length, lon0=anelLonLat.reduce((t,c)=>t+c[0],0)/anelLonLat.length;
+  const proj=projetorLocal(lat0, lon0);
+  const anel=anelLonLat.map(proj.para);
+  const linhas=[];
+  feats.forEach(f=>{
+    const t=mapaProp.talhoes[f._idxTalhao];
+    if(!t || t.tipo!=='linha') return;
+    const partes = f.geometry.type==='LineString' ? [f.geometry.coordinates] : (f.geometry.type==='MultiLineString' ? f.geometry.coordinates : []);
+    partes.forEach(pts=>linhas.push(pts.map(proj.para)));
+  });
+  if(!linhas.length){ toast('Não há linha de divisão no mapa pra recortar esse talhão.', true); return; }
+  let faces;
+  try{ faces=facesDoRecorte(anel, linhas); }catch(e){ toast('O recorte falhou: '+e.message, true); return; }
+  if(faces.length<2){ toast('As linhas não dividem esse talhão em mais de um pedaço (elas atravessam de lado a lado?).', true); return; }
+  const nomeBase=base.nomeModulo||base.nomeOriginal||('Talhão '+(idx+1));
+  const carimbo=Date.now();
+  faces.forEach((f,n)=>{
+    const ringLonLat=f.map(proj.volta); ringLonLat.push(ringLonLat[0]);
+    const nome=nomeBase+' '+(n+1);
+    mapaProp.talhoes.push({
+      id:'g'+carimbo+'_'+n, nomeOriginal:nome, nomeModulo:nome,
+      areaHa:areaGeodesicaHa(ringLonLat), tipo:'area', medida:false, comprimentoM:null,
+      gerado:true, origemIdx:idx, geometria:{type:'Polygon', coordinates:[ringLonLat]}
+    });
+  });
+  base.recortado=true;
+  assinaturaMapaDesenhado=null;   // a camada precisa ser reconstruída com os piquetes novos
+  persistir(); renderTalhoes(); atualizarDatalistModulos();
+  if(leafletMap) renderizarMapa();
+  atualizarMiniMapa();
+  const areaSoma=faces.reduce((t,f)=>t+Math.abs(areaAssinada(f)),0)/10000;
+  const cobertura = Math.abs(areaAssinada(anel))/10000;
+  let msg=faces.length+' piquetes criados a partir de "'+nomeBase+'" ('+fmtN(areaSoma)+' ha somados). Ajuste os nomes na lista, se quiser.';
+  if(areaSoma < cobertura*0.98) msg+=' Atenção: sobrou área fora dos piquetes — linha que não atravessa a área de lado a lado não recorta.';
+  toast(msg);
+}
+function desfazerRecorte(idx){
+  const base=mapaProp.talhoes[idx]; if(!base || !base.recortado) return;
+  mapaProp.talhoes=mapaProp.talhoes.filter(t=>!(t.gerado && t.origemIdx===idx));
+  base.recortado=false;
+  if(talhaoSelecionado!=null && talhaoSelecionado>=mapaProp.talhoes.length) talhaoSelecionado=null;
+  assinaturaMapaDesenhado=null;
+  persistir(); renderTalhoes(); atualizarDatalistModulos();
+  if(leafletMap) renderizarMapa();
+  atualizarMiniMapa();
+  toast('Recorte desfeito.');
+}
+
 // ---- Rótulo fixo desenhado sobre o talhão -----------------------------------
 // Em tamanho de legenda, com as duas informações que a Renata olha primeiro no
 // mapa: quantos animais estão naquele lote e quanto do pasto é aproveitável
@@ -1287,6 +1484,34 @@ function abrirCadastroDoTalhao(idx){
 // o reenquadramento saía menor do que o anterior, acumulando a cada ida e volta.
 // Agora só reenquadra quando não há vista guardada ou quando o usuário pede
 // (`{enquadrar:true}`, do botão "Enquadrar tudo" e do upload de um arquivo novo).
+// Todas as feições que vão pro mapa, na ordem de mapaProp.talhoes: primeiro as do
+// arquivo (índice = posição no KML filtrado), depois os piquetes gerados pelo recorte,
+// que não existem no KML e por isso guardam a própria geometria em `geometria`.
+// Serve tanto pro mapa principal quanto pro mini-mapa da aba Pastos.
+function montarFeaturesDoMapa(){
+  if(!mapaProp.kmlTexto) return [];
+  const xml=new DOMParser().parseFromString(mapaProp.kmlTexto,'text/xml');
+  if(xml.querySelector('parsererror')) throw new Error('arquivo KML inválido');
+  const validas=featuresValidasTalhao(toGeoJSON.kml(xml));
+  const feats=validas.map((f,i)=>{
+    const norm=normalizarGeometriaTalhao(f);
+    norm._idxTalhao=i;
+    return norm;
+  });
+  // Preenche tipo/comprimento em mapas salvos por versões anteriores (que não tinham
+  // esses campos) — assim a lista e o traço ficam certos sem precisar subir o KMZ de novo.
+  validas.forEach((f,i)=>{
+    const t=mapaProp.talhoes[i]; if(!t) return;
+    if(t.tipo==null) t.tipo=tipoDoTalhao(f);
+    if(t.comprimentoM==null) t.comprimentoM=comprimentoTalhaoM(f);
+    if(t.medida==null) t.medida=pareceMedida(t.nomeOriginal||'');
+  });
+  mapaProp.talhoes.forEach((t,idx)=>{
+    if(idx<validas.length || !t.geometria) return;
+    feats.push({type:'Feature', properties:{name:t.nomeOriginal}, geometry:t.geometria, _idxTalhao:idx});
+  });
+  return feats;
+}
 function renderizarMapa(opcoes){
   opcoes=opcoes||{};
   if(!leafletMap || !mapaProp.kmlTexto) return;
@@ -1298,24 +1523,7 @@ function renderizarMapa(opcoes){
   }
   try{
     if(geoLayer){ leafletMap.removeLayer(geoLayer); geoLayer=null; }
-    const xml=new DOMParser().parseFromString(mapaProp.kmlTexto,'text/xml');
-    if(xml.querySelector('parsererror')) throw new Error('arquivo KML inválido');
-    const gjBruto=toGeoJSON.kml(xml);
-    const validas=featuresValidasTalhao(gjBruto);
-    const paraRenderizar=validas.map((f,i)=>{
-      const norm=normalizarGeometriaTalhao(f);
-      norm._idxTalhao=i;
-      return norm;
-    });
-    // Preenche tipo/comprimento em mapas salvos por versões anteriores (que não tinham
-    // esses campos) — assim a lista e o traço ficam certos sem precisar subir o KMZ de novo.
-    validas.forEach((f,i)=>{
-      const t=mapaProp.talhoes[i]; if(!t) return;
-      if(t.tipo==null) t.tipo=tipoDoTalhao(f);
-      if(t.comprimentoM==null) t.comprimentoM=comprimentoTalhaoM(f);
-      if(t.medida==null) t.medida=pareceMedida(t.nomeOriginal||'');
-    });
-    const gj={type:'FeatureCollection', features:paraRenderizar};
+    const gj={type:'FeatureCollection', features:montarFeaturesDoMapa()};
     geoLayer=L.geoJSON(gj,{
       style: (feature)=>estiloTalhao(false, nomeModuloDoTalhao(feature._idxTalhao), feature._idxTalhao),
       pointToLayer:(f,latlng)=>L.circleMarker(latlng, Object.assign({radius:6}, estiloTalhao(false, nomeModuloDoTalhao(f._idxTalhao), f._idxTalhao))),
@@ -1342,7 +1550,7 @@ function renderizarMapa(opcoes){
 // chega a ser criado (o esconde-por-zoom, esse sim, é só CSS).
 function ehLinhaDeDivisao(idx){
   const t=mapaProp.talhoes[idx];
-  return !!(t && t.medida && t.tipo!=='area');
+  return !!(t && ((t.medida && t.tipo!=='area') || t.recortado));
 }
 function aplicarRotulos(){
   if(!geoLayer) return;
@@ -1447,6 +1655,7 @@ function renderTalhoes(){
     div.innerHTML='<div style="color:var(--mudo);font-size:12.5px">Nenhum mapa carregado ainda. Envie um arquivo KMZ ou KML acima.</div>';
     return;
   }
+  const haLinhasDeDivisao = mapaProp.talhoes.some(t=>t.tipo==='linha');
   const ordenados=mapaProp.talhoes
     .map((t,idx)=>({t,idx}))
     .sort((a,b)=>{
@@ -1459,12 +1668,28 @@ function renderTalhoes(){
     const infoAnimais = (t.medida && t.tipo!=='area')
       ? ('linha de divisão · '+fmtDist(t.comprimentoM))
       : ((rm.qtdAnimais ? (fmtI(rm.qtdAnimais)+' animais · '+fmtN(rm.pesoMedio)+' kg méd. · '+fmtN(rm.ua)+' UA') : (rm.nPastos? 'sem animais lançados' : 'módulo não usado em nenhum pasto ainda')) + aprov);
-    return `<div class="talhao-item${idx===talhaoSelecionado?' selecionado':''}" data-idx="${idx}">
-      <div class="talhao-original">${escapeHtml(t.nomeOriginal)}</div>
+    const ehLinha = t.medida && t.tipo!=='area';
+    const ehArea = t.tipo==='area';
+    const origem = (t.gerado && mapaProp.talhoes[t.origemIdx]) ? mapaProp.talhoes[t.origemIdx] : null;
+    const rotuloOrigem = t.gerado
+      ? `<div class="talhao-original">${escapeHtml(t.nomeOriginal)}<br><span style="font-size:10px;opacity:.75">piquete recortado de "${escapeHtml(origem ? (origem.nomeModulo||origem.nomeOriginal) : '?')}" · ${t.areaHa!=null?fmtN(t.areaHa)+' ha':''}</span></div>`
+      : `<div class="talhao-original">${escapeHtml(t.nomeOriginal)}${t.recortado?'<br><span style="font-size:10px;opacity:.75">recortado em piquetes</span>':''}</div>`;
+    // Recortar só faz sentido numa área ainda inteira, e só quando há linha no mapa.
+    const botaoRecorte = ehArea && !t.gerado
+      ? (t.recortado
+          ? `<button class="btn fantasma" onclick="desfazerRecorte(${idx})">Desfazer recorte</button>`
+          : (haLinhasDeDivisao ? `<button class="btn fantasma" onclick="recortarTalhaoPelasLinhas(${idx})" title="Divide esta área em piquetes usando as linhas de divisão do mapa">Recortar pelas linhas</button>` : ''))
+      : '';
+    // Linha de divisão não tem cadastro nem pastos: só destaque no mapa.
+    const botoesPasto = ehLinha ? '' : `
+      <button class="btn fantasma" onclick="abrirCadastroDoTalhao(${idx})" title="Abre o pasto deste módulo no cadastro (ou cria um novo já com módulo e área)">Ver cadastro →</button>
+      <button class="btn fantasma" onclick="verModuloNaTabela('${q(t.nomeModulo)}')">Ver pastos na tabela →</button>`;
+    return `<div class="talhao-item${idx===talhaoSelecionado?' selecionado':''}${t.recortado?' recortado':''}" data-idx="${idx}">
+      ${rotuloOrigem}
       <input type="text" list="listaModulosDatalist" value="${escapeHtml(t.nomeModulo)}" onchange="renomearTalhao(${idx}, this.value)" placeholder="Nome do Módulo">
       <span class="dica" style="min-width:260px">${escapeHtml(infoAnimais)}</span>
-      <button class="btn fantasma" onclick="selecionarTalhao(${idx})">Destacar no mapa</button>
-      <button class="btn fantasma" onclick="verModuloNaTabela('${q(t.nomeModulo)}')">Ver pastos na tabela →</button>
+      <button class="btn fantasma" onclick="selecionarTalhao(${idx})">Destacar no mapa</button>${botoesPasto}
+      ${botaoRecorte}
     </div>`;
   }).join('');
 }
@@ -1616,12 +1841,74 @@ function verModuloNoMapa(nomeModulo){
   if(btn) btn.click();
   setTimeout(()=>selecionarTalhao(idx), 80);
 }
+// ---- Mini-mapa de satélite na aba Pastos --------------------------------------
+// Quem vem de "Ver pastos na tabela" quer ver a tabela E o pedaço de terra de que ela
+// fala — então a imagem de satélite, com as linhas, aparece em cima da tabela com o
+// módulo filtrado em destaque. É um segundo mapa Leaflet, mais simples (sem rótulo,
+// sem roda do mouse), montado com as mesmas feições do mapa principal.
+let miniMapa=null, miniLayer=null, miniAssinatura=null;
+function abaPastosVisivel(){ const s=document.getElementById('pastos'); return !!(s && s.classList.contains('ativa')); }
+function atualizarMiniMapa(){
+  const cartao=document.getElementById('mapaTabelaCartao'); if(!cartao) return;
+  if(!mapaProp.kmlTexto || !bibliotecasMapaDisponiveis()){ cartao.style.display='none'; return; }
+  cartao.style.display='block';
+  if(!abaPastosVisivel()) return;      // desenha só com a aba na tela (Leaflet precisa medir)
+  try{
+    const el=document.getElementById('mapaTabela'); if(!el) return;
+    if(!miniMapa){
+      miniMapa=L.map(el,{scrollWheelZoom:false, attributionControl:false}).setView([-15.79,-47.93],4);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}).addTo(miniMapa);
+    }
+    if(miniMapa.invalidateSize) miniMapa.invalidateSize({pan:false});
+    const assinatura=assinaturaMapa()+'§'+mapaProp.talhoes.length;
+    if(!miniLayer || assinatura!==miniAssinatura){
+      if(miniLayer) miniMapa.removeLayer(miniLayer);
+      miniLayer=L.geoJSON({type:'FeatureCollection', features:montarFeaturesDoMapa()},{
+        style:(f)=>estiloTalhao(false, nomeModuloDoTalhao(f._idxTalhao), f._idxTalhao),
+        pointToLayer:(f,ll)=>L.circleMarker(ll, Object.assign({radius:5}, estiloTalhao(false, nomeModuloDoTalhao(f._idxTalhao), f._idxTalhao))),
+        onEachFeature:(f,layer)=>{
+          layer._talhaoIdx=f._idxTalhao;
+          layer.on('click',()=>{ const t=mapaProp.talhoes[f._idxTalhao]; if(t && !(t.medida && t.tipo!=='area')) verModuloNaTabela(t.nomeModulo||t.nomeOriginal); });
+        }
+      }).addTo(miniMapa);
+      miniAssinatura=assinatura;
+    }
+    const alvo=normalizarTxt(filtros.modulo||'');
+    const destacadas=[];
+    miniLayer.eachLayer(layer=>{
+      const idx=layer._talhaoIdx; const t=mapaProp.talhoes[idx]; if(!t) return;
+      const bate = !!alvo && normalizarTxt(t.nomeModulo||t.nomeOriginal)===alvo;
+      if(layer.setStyle) layer.setStyle(estiloTalhao(bate, nomeModuloDoTalhao(idx), idx));
+      if(bate) destacadas.push(layer);
+    });
+    const titulo=document.getElementById('mapaTabelaTitulo');
+    if(destacadas.length && typeof L.featureGroup==='function'){
+      const b=L.featureGroup(destacadas).getBounds();
+      if(b && b.isValid && b.isValid()) miniMapa.fitBounds(b,{padding:[30,30],maxZoom:17});
+      if(titulo) titulo.textContent='Satélite · módulo "'+filtros.modulo+'" em destaque. Clique em outro talhão para trocar o filtro.';
+    } else {
+      if(miniLayer.getBounds && miniLayer.getBounds().isValid()) miniMapa.fitBounds(miniLayer.getBounds(),{padding:[20,20]});
+      if(titulo) titulo.textContent = alvo
+        ? 'Satélite · o módulo "'+filtros.modulo+'" não está vinculado a nenhum talhão do mapa.'
+        : 'Satélite · fazenda inteira. Filtre por módulo (ou clique num talhão) para destacar.';
+    }
+  }catch(e){ /* o mini-mapa é apoio: um erro nele não pode derrubar a tabela */ }
+}
+function abrirMapaCompleto(){
+  if(filtros.modulo && encontrarTalhaoPorModulo(filtros.modulo)!=null) return verModuloNoMapa(filtros.modulo);
+  const btn=document.querySelector('nav button[data-aba="mapa"]'); if(btn) btn.click();
+}
 function verModuloNaTabela(nomeModulo){
   const alvo=normalizarTxt(nomeModulo);
   const real = todos().map(r=>r.modulo).find(m=>m && normalizarTxt(m)===alvo);
   const btn=document.querySelector('nav button[data-aba="pastos"]');
   if(btn) btn.click();
-  if(!real){ toast('Nenhum pasto cadastrado usa o módulo "'+nomeModulo+'" ainda.', true); return; }
+  if(!real){
+    filtros.modulo='';
+    atualizarTudo();
+    toast('Nenhum pasto cadastrado usa o módulo "'+nomeModulo+'" ainda — use "Ver cadastro" no talhão para criar o primeiro.', true);
+    return;
+  }
   filtros.modulo = real;
   pagina=0;
   atualizarTudo();
@@ -1935,6 +2222,7 @@ document.querySelectorAll('nav button[data-aba]').forEach(b=>b.onclick=()=>{
     mostrarSubCadastro(b.dataset.subaba);
   }
   if(b.dataset.aba==='painel') renderGraficos(filtrar());
+  if(b.dataset.aba==='pastos') atualizarMiniMapa();
   if(b.dataset.aba==='relatorios') renderRelatorios(filtrar());
   if(b.dataset.aba==='mapa') ativarAbaMapa();
 });
@@ -1995,6 +2283,7 @@ function atualizarTudo(){
   document.getElementById('totalGeral').textContent=fmtI(todos().length);
   atualizarDatalistModulos();
   atualizarTooltipsMapa();
+  atualizarMiniMapa();
 }
 // ---- Tema claro/escuro ----
 function aplicarTema(tema){

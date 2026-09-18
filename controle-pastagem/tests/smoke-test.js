@@ -107,6 +107,7 @@ async function main() {
 -47.10,-15.10,0 -47.09,-15.10,0 -47.09,-15.09,0 -47.10,-15.09,0 -47.10,-15.10,0
 </coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
 <Placemark><name>Medida da linha</name><LineString><coordinates>-47.095,-15.095,0 -47.085,-15.085,0</coordinates></LineString></Placemark>
+<Placemark><name>Medida da linha</name><LineString><coordinates>-47.1005,-15.095,0 -47.0895,-15.095,0</coordinates></LineString></Placemark>
 </Document></kml>`;
   const zip = new JSZipLib();
   zip.file('doc.kml', kml);
@@ -119,7 +120,7 @@ async function main() {
   // "Medida da linha" é o nome que o Google Earth dá ao desenho feito com a régua — e é
   // com ela que se divide piquete na prática. Descartar por causa do nome fazia a divisão
   // inteira do pasto sumir do mapa; tem que entrar como linha, com o comprimento medido.
-  checar('KMZ: polígono e linha de medida entram os dois', doc.querySelectorAll('#listaTalhoes .talhao-item').length === 2);
+  checar('KMZ: polígono e as duas linhas de medida entram todos', doc.querySelectorAll('#listaTalhoes .talhao-item').length === 3);
   // mapaProp é `let` no topo do script: não vira propriedade de window, então se lê pelo
   // eval da própria janela (escopo léxico global), não por w.mapaProp.
   const talhoes = w.eval('JSON.parse(JSON.stringify(mapaProp.talhoes))');
@@ -129,18 +130,41 @@ async function main() {
   checar('a linha aparece na lista como divisão, não como pasto', /linha de divisão/.test(doc.querySelectorAll('#listaTalhoes .talhao-item')[1].textContent));
   // Numa fazenda de verdade são dezenas de linhas, todas chamadas "Medida da linha":
   // rótulo fixo em cada uma vira uma pilha de texto que esconde o pasto.
-  const camadasMapa = w.L.__debug.geoJSONLayers[w.L.__debug.geoJSONLayers.length - 1]._mockLayers;
-  checar('linha de divisão não ganha rótulo fixo no mapa', !camadasMapa[1]._tooltip);
+  const mapaMock = w.L.__debug.maps[0];
+  // Há dois mapas (o principal e o mini-mapa da aba Pastos): a camada que interessa é a
+  // que está no mapa principal agora, não "a última criada".
+  const camadaPrincipal = () => mapaMock._layers.find(l => l._mockLayers);
+  checar('linha de divisão não ganha rótulo fixo no mapa', !camadaPrincipal()._mockLayers[1]._tooltip);
+
+  // ---- Recorte do polígono pelas linhas ----
+  // A horizontal cruza o quadrado de lado a lado: duas metades. A diagonal nasce em cima
+  // da horizontal (no centro) e sai pelo canto nordeste: corta a metade de cima em dois
+  // triângulos. Resultado: 3 piquetes — metade de baixo + dois pedaços da de cima.
+  const areaBase = talhoes[0].areaHa;
+  w.recortarTalhaoPelasLinhas(0);
+  const depois = w.eval('JSON.parse(JSON.stringify(mapaProp.talhoes))');
+  const gerados = depois.filter(t => t.gerado);
+  const somaHa = gerados.reduce((t, g) => t + g.areaHa, 0);
+  const maior = gerados.length ? Math.max(...gerados.map(g => g.areaHa)) : 0;
+  checar('recorte gera 3 piquetes (horizontal atravessa; diagonal parte da horizontal ao canto)', gerados.length === 3);
+  checar('a soma das áreas dos piquetes é a área do polígono', gerados.length === 3 && Math.abs(somaHa - areaBase) < areaBase * 0.01);
+  checar('a metade de baixo, inteira, é o maior piquete (≈ metade da área)', gerados.length === 3 && Math.abs(maior - areaBase / 2) < areaBase * 0.02);
+  checar('piquete gerado carrega a própria geometria (não está no KML)', gerados.length === 3 && gerados[0].geometria && gerados[0].geometria.type === 'Polygon');
+  checar('piquetes vêm ordenados de cima pra baixo (o maior, de baixo, é o último)', gerados.length === 3 && gerados[2].areaHa === maior);
+  checar('o polígono original fica marcado como recortado', depois[0].recortado === true);
+  checar('a lista oferece "Desfazer recorte" e "Ver cadastro"', /Desfazer recorte/.test(doc.getElementById('listaTalhoes').textContent) && /Ver cadastro/.test(doc.getElementById('listaTalhoes').textContent));
+  w.desfazerRecorte(0);
+  const desfeito = w.eval('JSON.parse(JSON.stringify(mapaProp.talhoes))');
+  checar('desfazer remove os piquetes gerados e libera o polígono', desfeito.length === 3 && !desfeito[0].recortado);
 
   // Rótulo fixo: nome do módulo + animais do lote + % de aproveitamento do pasto.
   // O talhão se chama "Piquete Teste" e ainda não é módulo de nenhum pasto, então
   // primeiro amarramos ele ao pasto que recebeu os 30 animais no bloco 4.
-  const mapaMock = w.L.__debug.maps[0];
-  const camadaTalhao = w.L.__debug.geoJSONLayers[w.L.__debug.geoJSONLayers.length - 1]._mockLayers[0];
+  const camadaTalhao = camadaPrincipal()._mockLayers[0];
   checar('rótulo do talhão é tooltip permanente (não some ao tirar o mouse)',
     camadaTalhao._tooltipOpts && camadaTalhao._tooltipOpts.permanent === true);
 
-  const lerRotulo = () => w.L.__debug.geoJSONLayers[w.L.__debug.geoJSONLayers.length - 1]._mockLayers[0]._tooltip || '';
+  const lerRotulo = () => camadaPrincipal()._mockLayers[0]._tooltip || '';
 
   doc.querySelector('nav button[data-aba="pastos"]').click();
   doc.querySelector('#corpo tr td.acao').click();
