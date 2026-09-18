@@ -93,7 +93,7 @@ let cliente = clienteDefault();
 // voltar exatamente no mesmo enquadramento depois de marcar um piquete, em vez de
 // reenquadrar a fazenda inteira toda vez (o que dava a sensação de "ir diminuindo").
 function mapaPropDefault(){
-  return {arquivoNome:'', dataUpload:'', kmlTexto:'', talhoes:[], vista:null, mostrarRotulos:true};
+  return {arquivoNome:'', dataUpload:'', kmlTexto:'', talhoes:[], vista:null, mostrarRotulos:true, ultimaLeitura:null};
 }
 let mapaProp = mapaPropDefault();
 const filtros = {modulo:'', manejo:'', classificacao:'', capim:'', aguada:'', cocho:''};
@@ -1003,7 +1003,7 @@ function inicializarMapaSeNecessario(){
     // desenho aparecer encolhido dentro da moldura).
     if(leafletMap.on){
       leafletMap.on('moveend', agendarGravacaoVista);
-      leafletMap.on('zoomend', agendarGravacaoVista);
+      leafletMap.on('zoomend', ()=>{ agendarGravacaoVista(); ajustarVisibilidadeRotulos(); });
     }
     vigiarTamanhoMapa(el);
     const satelite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'});
@@ -1066,16 +1066,45 @@ function nomeModuloDoTalhao(idx){
 // (muita cerca elétrica é registrada como um traçado de linha, não um polígono fechado).
 // Só descarta pelo NOME quando é claramente uma régua de medir distância do Google Earth
 // (ex.: "Medida da linha"), não pelo tipo de geometria.
-function featuresValidasTalhao(gj){
-  return gj.features.filter(f=>{
-    if(!f.geometry) return false;
-    const tipo=f.geometry.type;
-    if(!['Polygon','MultiPolygon','Point','LineString','MultiLineString'].includes(tipo)) return false;
-    const nome=(f.properties && (f.properties.name||f.properties.Name)) || '';
-    const nomeNorm=normalizarTxt(nome);
-    const pareceMedida = /^medid|^regua|^distanc|^escala/.test(nomeNorm);
-    return !pareceMedida;
+// Um Placemark com <MultiGeometry> vira GeometryCollection no GeoJSON. Google Earth
+// gera isso sempre que um mesmo desenho tem mais de uma parte (dois pedaços de cerca,
+// ilha dentro do piquete). Antes essas features caíam fora da lista de tipos aceitos e
+// sumiam do mapa sem aviso — agora cada geometria de dentro vira um talhão, com o nome
+// do desenho e um contador quando há mais de uma.
+function expandirGeometrias(f){
+  if(!f.geometry) return [];
+  if(f.geometry.type!=='GeometryCollection') return [f];
+  const partes=(f.geometry.geometries||[]).filter(g=>g && g.type!=='GeometryCollection');
+  if(!partes.length) return [];
+  const nome=(f.properties && (f.properties.name||f.properties.Name)) || '';
+  return partes.map((g,i)=>{
+    const props=Object.assign({}, f.properties||{});
+    if(partes.length>1 && nome) props.name=nome+' ('+(i+1)+')';
+    return {type:'Feature', properties:props, geometry:g};
   });
+}
+const TIPOS_TALHAO=['Polygon','MultiPolygon','Point','LineString','MultiLineString'];
+// Separa o que vira talhão do que foi descartado — e por quê. O "porquê" é mostrado na
+// tela depois do upload: arquivo em que falta desenho no mapa era um sumiço silencioso.
+function separarFeatures(gj){
+  const validas=[], ignoradas=[];
+  (gj.features||[]).forEach(bruta=>{
+    const expandidas=expandirGeometrias(bruta);
+    if(!expandidas.length){
+      ignoradas.push({nome:(bruta.properties&&(bruta.properties.name||bruta.properties.Name))||'(sem nome)', motivo:'sem geometria'});
+      return;
+    }
+    expandidas.forEach(f=>{
+      const nome=(f.properties && (f.properties.name||f.properties.Name)) || '(sem nome)';
+      if(!TIPOS_TALHAO.includes(f.geometry.type)){ ignoradas.push({nome, motivo:'tipo '+f.geometry.type}); return; }
+      if(/^medid|^regua|^distanc|^escala/.test(normalizarTxt(nome))){ ignoradas.push({nome, motivo:'régua de medida'}); return; }
+      validas.push(f);
+    });
+  });
+  return {validas, ignoradas};
+}
+function featuresValidasTalhao(gj){
+  return separarFeatures(gj).validas;
 }
 // Cerca elétrica é normalmente caminhada com GPS até fechar o piquete — o traçado (LineString)
 // começa e termina quase no mesmo ponto. Quando é o caso, tratamos como área (Polygon) pra
@@ -1123,10 +1152,12 @@ function rotuloTalhao(idx){
   const nome=nomeModuloDoTalhao(idx) || ('Talhão '+(idx+1));
   const rm=resumoModulo(nome);
   const animais = rm.qtdAnimais ? (fmtI(rm.qtdAnimais)+' animais') : 'sem animais';
+  // Texto curto de propósito: o rótulo precisa caber dentro do piquete desenhado. O
+  // número por extenso (UA, lotação, ha) fica no quadro de detalhe do canto do mapa.
   // Sem classificação não existe área útil — mostrar "0,00%" aqui faria o pasto
   // parecer perdido quando o que falta é classificar.
   const aprov = (rm.pctAproveitamento!=null && rm.pctAreaClassificada>0)
-    ? (fmtN(rm.pctAproveitamento)+'% aproveit.')
+    ? (fmtN(rm.pctAproveitamento)+'%')
     : 'a classificar';
   return '<span class="rt-nome">'+escapeHtml(nome)+'</span>'+
          '<span class="rt-dado">'+escapeHtml(animais)+' · '+escapeHtml(aprov)+'</span>';
@@ -1229,6 +1260,8 @@ function renderizarMapa(opcoes){
       onEachFeature:(feature,layer)=>{
         const idx=feature._idxTalhao;
         layer._talhaoIdx=idx;
+        // área de pasto (polígono, ou cerca caminhada que fechou) x ponto/linha solta
+        layer._ehArea = feature.geometry && (feature.geometry.type==='Polygon' || feature.geometry.type==='MultiPolygon');
         layer.on('click',()=>abrirCadastroDoTalhao(idx));
         layer.on('mouseover',()=>mostrarDetalheTalhao(idx));
       }
@@ -1255,6 +1288,44 @@ function aplicarRotulos(){
     } else if(layer.unbindTooltip){
       layer.unbindTooltip();
     }
+  });
+  ajustarVisibilidadeRotulos();
+}
+// Com muitos piquetes, rótulo em cima de rótulo vira uma parede que esconde o próprio
+// desenho do talhão. Então o rótulo só aparece quando o talhão tem largura suficiente na
+// tela pra comportá-lo — dá zoom e ele aparece, afasta e ele sai da frente.
+const ROTULO_ALTURA_MINIMA=22;
+function talhaoComportaRotulo(layer, larguraRotulo){
+  const idx=layer._talhaoIdx;
+  // Aguada (ponto) e divisa/cerca aberta (linha) não são lote de pasto: rotular todas
+  // enche o mapa de texto justamente onde não há animal nem aproveitamento pra mostrar.
+  // Elas só ganham rótulo quando têm animais lançados no módulo.
+  if(!layer._ehArea){
+    if(idx==null) return false;
+    const rm=resumoModulo(nomeModuloDoTalhao(idx));
+    return !!(rm && rm.qtdAnimais);
+  }
+  if(!leafletMap || !layer.getBounds || typeof leafletMap.latLngToContainerPoint!=='function') return true;
+  try{
+    const b=layer.getBounds();
+    if(!b || !b.isValid || !b.isValid()) return true;
+    const a=leafletMap.latLngToContainerPoint(b.getNorthWest());
+    const c=leafletMap.latLngToContainerPoint(b.getSouthEast());
+    const larguraTalhao=Math.abs(c.x-a.x), alturaTalhao=Math.abs(c.y-a.y);
+    // cabe o rótulo inteiro dentro do desenho? (senão dois rótulos vizinhos se cobrem)
+    const precisa = larguraRotulo ? larguraRotulo*0.95 : 64;
+    return larguraTalhao>=precisa && alturaTalhao>=ROTULO_ALTURA_MINIMA;
+  }catch(e){ return true; }
+}
+function ajustarVisibilidadeRotulos(){
+  if(!geoLayer || !rotulosLigados()) return;
+  geoLayer.eachLayer(layer=>{
+    const tt = layer.getTooltip ? layer.getTooltip() : null;
+    if(!tt || typeof tt.getElement!=='function') return;
+    const el=tt.getElement(); if(!el || !el.classList) return;
+    el.classList.remove('rotulo-apagado');          // mede com ele visível, senão dá 0
+    const larguraRotulo=el.offsetWidth||0;
+    el.classList.toggle('rotulo-apagado', !talhaoComportaRotulo(layer, larguraRotulo));
   });
 }
 function alternarRotulosMapa(ligado){
@@ -1320,6 +1391,23 @@ function renomearTalhao(idx, novoNome){
   renderTalhoes();
   toast('Nome do módulo atualizado.');
 }
+// Mostra, em texto, o que o arquivo tinha e o que virou talhão. Sem isso, um desenho
+// que não aparece no mapa é um sumiço mudo — e foi exatamente a queixa que gerou esta tela.
+function atualizarResumoLeituraMapa(){
+  const el=document.getElementById('resumoLeituraMapa'); if(!el) return;
+  const r=mapaProp.ultimaLeitura;
+  if(!r){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='block';
+  let html='<b>Leitura do arquivo:</b> '+fmtI(r.lidos)+' desenho(s) viraram talhão'
+    + (r.arquivos>1 ? (' · '+fmtI(r.arquivos)+' arquivos .kml lidos de dentro do KMZ') : '');
+  if(r.networkLink) html+='<br><span style="color:var(--ouro)">Atenção: o arquivo tem NetworkLink (aponta para desenhos que moram fora dele). Se faltar coisa no mapa, no Google Earth use "Salvar lugar como…" na pasta para gerar um KMZ com tudo embutido.</span>';
+  if(r.ignorados && r.ignorados.length){
+    html+='<br><b>'+fmtI(r.ignorados.length)+' item(ns) ficaram de fora:</b> '
+      + r.ignorados.slice(0,12).map(i=>escapeHtml(i.nome)+' <span style="opacity:.7">('+escapeHtml(i.motivo)+')</span>').join(', ')
+      + (r.ignorados.length>12 ? ' e mais '+fmtI(r.ignorados.length-12)+'…' : '');
+  }
+  el.innerHTML=html;
+}
 function atualizarInfoArquivoMapa(){
   const el=document.getElementById('infoMapaArquivo'); if(!el) return;
   el.textContent = mapaProp.arquivoNome ? (mapaProp.arquivoNome+' · carregado em '+fmtD(new Date(mapaProp.dataUpload))) : '';
@@ -1345,23 +1433,47 @@ async function carregarArquivoMapa(ev){
     }
   }
   try{
-    let kmlText;
+    let kmlTextos;
     if(/\.kmz$/i.test(file.name)){
       const buf=await file.arrayBuffer();
       const zip=await JSZip.loadAsync(buf);
-      const entry=Object.values(zip.files).find(f=>/\.kml$/i.test(f.name) && !f.dir);
-      if(!entry) throw new Error('nenhum arquivo .kml encontrado dentro do KMZ');
-      kmlText=await entry.async('text');
+      // Um KMZ pode trazer mais de um .kml (Google Earth separa por pasta em exportação
+      // grande). Antes só o primeiro encontrado era lido e o resto do desenho sumia sem
+      // aviso — agora todos entram, com doc.kml na frente pra manter a ordem original.
+      const entradas=Object.values(zip.files).filter(f=>/\.kml$/i.test(f.name) && !f.dir);
+      if(!entradas.length) throw new Error('nenhum arquivo .kml encontrado dentro do KMZ');
+      entradas.sort((a,b)=>{
+        const ap=/(^|\/)doc\.kml$/i.test(a.name)?0:1, bp=/(^|\/)doc\.kml$/i.test(b.name)?0:1;
+        return ap-bp || a.name.localeCompare(b.name);
+      });
+      kmlTextos=await Promise.all(entradas.map(e=>e.async('text')));
     } else if(/\.kml$/i.test(file.name)){
-      kmlText=await file.text();
+      kmlTextos=[await file.text()];
     } else {
       throw new Error('envie um arquivo .kmz ou .kml');
     }
-    const xml=new DOMParser().parseFromString(kmlText,'text/xml');
-    if(xml.querySelector('parsererror')) throw new Error('arquivo KML inválido');
-    const gj=toGeoJSON.kml(xml);
-    const validas=featuresValidasTalhao(gj);
-    if(!validas.length) throw new Error('nenhum talhão (polígono) encontrado no arquivo — só foram encontradas linhas/medidas, que não são pastos');
+    const kmlText=kmlTextos[0];
+    let features=[], ignoradas=[], temNetworkLink=false;
+    kmlTextos.forEach(txt=>{
+      const xml=new DOMParser().parseFromString(txt,'text/xml');
+      if(xml.querySelector('parsererror')) throw new Error('arquivo KML inválido');
+      if(xml.getElementsByTagName('NetworkLink').length) temNetworkLink=true;
+      const sep=separarFeatures(toGeoJSON.kml(xml));
+      features=features.concat(sep.validas);
+      ignoradas=ignoradas.concat(sep.ignoradas);
+    });
+    const validas=features;
+    if(!validas.length){
+      throw new Error(temNetworkLink
+        ? 'este arquivo não traz os desenhos dentro dele — ele aponta para outro arquivo externo (NetworkLink). No Google Earth, clique com o botão direito na pasta e use "Salvar lugar como…" para gerar um KMZ com os desenhos embutidos'
+        : 'nenhum desenho aproveitável encontrado no arquivo'+(ignoradas.length?(' — '+ignoradas.length+' item(ns) foram descartados: '+ignoradas.slice(0,4).map(i=>i.nome+' ('+i.motivo+')').join(', ')):''));
+    }
+    mapaProp.ultimaLeitura={
+      arquivos:kmlTextos.length,
+      lidos:validas.length,
+      ignorados:ignoradas,
+      networkLink:temNetworkLink
+    };
     mapaProp.arquivoNome=file.name;
     mapaProp.dataUpload=new Date().toISOString();
     mapaProp.kmlTexto=kmlText;
@@ -1380,7 +1492,10 @@ async function carregarArquivoMapa(ev){
     ajustarTamanhoMapa();
     renderizarMapa({enquadrar:true});
     salvarComoAnexo(file);
-    toast(mapaProp.talhoes.length+' talhão(ões) carregado(s) do mapa.');
+    atualizarResumoLeituraMapa();
+    let aviso=mapaProp.talhoes.length+' talhão(ões) carregado(s) do mapa.';
+    if(ignoradas.length) aviso+=' '+ignoradas.length+' item(ns) do arquivo ficaram de fora — veja a lista abaixo do mapa.';
+    toast(aviso, ignoradas.length>0);
   }catch(e){
     toast('Não consegui ler esse arquivo: '+e.message, true);
   }
@@ -1394,7 +1509,7 @@ function removerMapa(){
   assinaturaMapaDesenhado=null;
   if(geoLayer && leafletMap){ leafletMap.removeLayer(geoLayer); geoLayer=null; }
   limparDetalheTalhao();
-  persistir(); atualizarInfoArquivoMapa(); renderTalhoes(); mostrarAvisoMapa(null);
+  persistir(); atualizarInfoArquivoMapa(); renderTalhoes(); atualizarResumoLeituraMapa(); mostrarAvisoMapa(null);
   toast('Mapa removido.');
 }
 function normalizarTxt(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
@@ -1590,7 +1705,7 @@ function carregarVersao(id){
   Object.keys(filtros).forEach(k=>filtros[k]='');
   Object.assign(filtros, s.filtros||{});
   if(geoLayer && leafletMap){ leafletMap.removeLayer(geoLayer); geoLayer=null; }
-  assinaturaMapaDesenhado=null; limparDetalheTalhao(); sincronizarControlesMapa();
+  assinaturaMapaDesenhado=null; limparDetalheTalhao(); sincronizarControlesMapa(); atualizarResumoLeituraMapa();
   persistir(); atualizarTudo(); carregarCliente();
   atualizarInfoArquivoMapa(); renderTalhoes(); atualizarDatalistModulos();
   renderCatalogoProdutos(); renderFormAplicacoes(); renderModulosRegistrados();
@@ -1680,7 +1795,7 @@ function importarJSON(ev){
     mapaProp.talhoes=mapaProp.talhoes||[];
     Object.keys(filtros).forEach(k=>filtros[k]='');
     Object.assign(filtros, s.filtros||{});
-    assinaturaMapaDesenhado=null; limparDetalheTalhao(); sincronizarControlesMapa();
+    assinaturaMapaDesenhado=null; limparDetalheTalhao(); sincronizarControlesMapa(); atualizarResumoLeituraMapa(); atualizarResumoLeituraMapa();
     persistir(); atualizarTudo(); carregarCliente();
     atualizarInfoArquivoMapa(); renderTalhoes(); atualizarDatalistModulos();
     renderCatalogoProdutos(); renderFormAplicacoes(); renderModulosRegistrados();
@@ -1737,12 +1852,42 @@ document.querySelectorAll('nav button[data-aba]').forEach(b=>b.onclick=()=>{
 function alternarMenuCadastros(ev){
   if(ev) ev.stopPropagation();
   const dd=document.getElementById('dropdownCadastros');
-  if(dd) dd.classList.toggle('aberto');
+  if(!dd) return;
+  dd.classList.toggle('aberto');
+  if(dd.classList.contains('aberto')) posicionarMenuCadastros();
+}
+// O menu é position:fixed (a nav recorta filho absoluto, ver CSS), então quem coloca
+// ele embaixo do botão é esta função — e ela também impede que ele saia pela direita
+// da tela no celular.
+function posicionarMenuCadastros(){
+  const dd=document.getElementById('dropdownCadastros'); if(!dd) return;
+  const menu=dd.querySelector('.nav-dropdown-menu');
+  const btn=dd.querySelector('.nav-dropdown-btn');
+  if(!menu || !btn || typeof btn.getBoundingClientRect!=='function') return;
+  const r=btn.getBoundingClientRect();
+  const larguraTela=window.innerWidth||document.documentElement.clientWidth||0;
+  const larguraMenu=menu.offsetWidth||200;
+  const margem=8;
+  let esquerda=r.left;
+  if(larguraTela && esquerda+larguraMenu+margem>larguraTela) esquerda=Math.max(margem, larguraTela-larguraMenu-margem);
+  menu.style.top=Math.round(r.bottom)+'px';
+  menu.style.left=Math.round(esquerda)+'px';
 }
 document.addEventListener('click',(ev)=>{
   const dd=document.getElementById('dropdownCadastros');
   if(dd && !dd.contains(ev.target)) dd.classList.remove('aberto');
 });
+['resize','orientationchange'].forEach(evt=>window.addEventListener(evt,()=>{
+  const dd=document.getElementById('dropdownCadastros');
+  if(dd && dd.classList.contains('aberto')) posicionarMenuCadastros();
+}));
+(function(){
+  const nav=document.querySelector('nav');
+  if(nav) nav.addEventListener('scroll',()=>{
+    const dd=document.getElementById('dropdownCadastros');
+    if(dd && dd.classList.contains('aberto')) posicionarMenuCadastros();
+  });
+})();
 function mostrarSubCadastro(subId){
   document.querySelectorAll('.subaba').forEach(x=>x.classList.remove('subaba-ativa'));
   document.querySelectorAll('.subnav-cadastros button').forEach(x=>x.classList.remove('ativo'));
@@ -1796,6 +1941,7 @@ renderTalhoes();
 atualizarDatalistModulos();
 limparDetalheTalhao();
 sincronizarControlesMapa();
+atualizarResumoLeituraMapa();
 atualizarTudo(); calcVivo();
 window.addEventListener('resize',()=>{ renderGraficos(filtrar()); if(document.getElementById('relatorios').classList.contains('ativa')) renderGraficos(filtrar(),'Rel'); });
 window.addEventListener('beforeprint',()=>renderGraficos(filtrar(),'Rel'));

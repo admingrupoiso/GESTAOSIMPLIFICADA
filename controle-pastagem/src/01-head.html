@@ -206,10 +206,14 @@ a.valor-capa:hover{color:var(--creme)}
   padding:2px 6px;text-align:center;white-space:nowrap;line-height:1.25;
   color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9);font-family:'Inter',sans-serif}
 .leaflet-tooltip.rotulo-talhao::before{display:none}
+/* talhão pequeno demais na tela pro rótulo caber: some até dar zoom */
+.leaflet-tooltip.rotulo-talhao.rotulo-apagado{display:none}
 .rotulo-talhao .rt-nome{display:block;font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--creme)}
 .rotulo-talhao .rt-dado{display:block;font-size:10px;font-weight:600;opacity:.95}
 :root[data-tema="claro"] .leaflet-tooltip.rotulo-talhao{background:rgba(255,253,247,.82);color:#2a2510;text-shadow:none}
 :root[data-tema="claro"] .rotulo-talhao .rt-nome{color:#2a2510}
+.resumo-leitura{background:var(--painel2);border:1px solid var(--borda);border-left:3px solid var(--ouro);
+  border-radius:5px;padding:10px 12px;margin-bottom:12px;font-size:12px;line-height:1.6;color:var(--texto)}
 .talhao-item{display:flex;align-items:center;gap:12px;background:var(--painel2);border:1px solid var(--borda);border-radius:5px;padding:9px 12px;margin-bottom:8px;flex-wrap:wrap;transition:border-color .15s,background .15s}
 .talhao-item.selecionado{border-color:var(--ouro);background:rgba(212,168,32,.1)}
 .talhao-item .talhao-original{min-width:170px;color:var(--mudo);font-size:12px}
@@ -237,8 +241,13 @@ details.cartao[open] summary{margin-bottom:12px;border-bottom:1px solid var(--bo
   padding:14px 18px 12px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:color .15s}
 .nav-dropdown-btn:hover{color:var(--creme)}
 .nav-dropdown.aberto .nav-dropdown-btn,.nav-dropdown.ativo .nav-dropdown-btn{color:var(--ouro);border-bottom-color:var(--ouro)}
-.nav-dropdown-menu{display:none;position:absolute;top:100%;left:0;background:var(--painel);border:1px solid var(--borda);border-radius:0 0 6px 6px;
-  min-width:200px;z-index:50;box-shadow:0 8px 20px rgba(0,0,0,.35)}
+/* position:fixed, não absolute: a <nav> tem overflow-x:auto (pra rolar no celular) e
+   overflow recorta filho posicionado — com `absolute` o menu era cortado pela altura da
+   nav e simplesmente não aparecia, em nenhuma largura de tela. Fixo, ele escapa do
+   recorte; posicionarMenuCadastros() o encaixa embaixo do botão e o segura dentro da
+   tela. */
+.nav-dropdown-menu{display:none;position:fixed;top:0;left:0;background:var(--painel);border:1px solid var(--borda);border-radius:0 0 6px 6px;
+  min-width:200px;max-width:calc(100vw - 16px);z-index:1200;box-shadow:0 8px 20px rgba(0,0,0,.35)}
 .nav-dropdown.aberto .nav-dropdown-menu{display:block}
 .nav-dropdown-menu button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--texto);font-family:'Inter',sans-serif;
   font-size:13px;padding:10px 16px;cursor:pointer}

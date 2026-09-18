@@ -105,6 +105,34 @@ const KML = `<?xml version="1.0" encoding="UTF-8"?>
   await page.locator('#mapaLeaflet').screenshot({ path: path.join(SAIDA, '3-rotulos.png') });
 
   const rotulos = await page.$$eval('.leaflet-tooltip.rotulo-talhao', els => els.map(e => e.innerText.replace(/\n/g, ' · ')));
+
+  // ---- O menu Cadastros aparece DE VERDADE, em toda largura de tela? ----------------
+  // Teste de classe CSS não pega isto: o menu tinha a classe "aberto" e mesmo assim não
+  // era desenhado, porque a <nav> tem overflow-x:auto e recortava o menu inteiro.
+  const menu = [];
+  for (const largura of [1280, 900, 600, 390]) {
+    const p2 = await browser.newPage({ viewport: { width: largura, height: 800 } });
+    await p2.goto('file://' + DIST);
+    await p2.waitForTimeout(1500);
+    await p2.click('.nav-dropdown-btn');
+    await p2.waitForTimeout(200);
+    const r = await p2.$eval('.nav-dropdown-menu', el => {
+      const b = el.getBoundingClientRect();
+      return { x: b.x, y: b.y, w: b.width, h: b.height };
+    });
+    // O ponto onde o primeiro item do menu está desenhado devolve mesmo esse item?
+    const alvo = await p2.evaluate(() => {
+      const item = document.querySelector('.nav-dropdown-menu button[data-subaba="sub-pastos"]');
+      const b = item.getBoundingClientRect();
+      const emCima = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+      return emCima === item || item.contains(emCima);
+    });
+    const dentro = r.x >= 0 && r.y >= 0 && r.w > 0 && r.h > 0 &&
+                   r.x + r.w <= largura && r.y + r.h <= 800;
+    menu.push({ largura, dentroDaTela: dentro, itemClicavel: alvo });
+    await p2.close();
+  }
+
   await browser.close();
 
   const falhas = [];
@@ -112,14 +140,19 @@ const KML = `<?xml version="1.0" encoding="UTF-8"?>
   if (antes.zoom !== depois.zoom) falhas.push(`zoom mudou sozinho: ${antes.zoom} -> ${depois.zoom}`);
   if (antes.tam.join('x') !== depois.tam.join('x')) falhas.push(`área de desenho mudou: ${antes.tam.join('x')} -> ${depois.tam.join('x')}`);
   if (!rotulos.length) falhas.push('nenhum rótulo desenhado no mapa');
-  if (rotulos.length && !rotulos.every(r => /animais/.test(r) && /(aproveit|classificar)/.test(r)))
+  if (rotulos.length && !rotulos.every(r => /animais/.test(r) && /(%|classificar)/.test(r)))
     falhas.push('rótulo sem animais e/ou aproveitamento: ' + JSON.stringify(rotulos));
+  menu.forEach(m => {
+    if (!m.dentroDaTela) falhas.push(`menu Cadastros fora da tela ou não desenhado em ${m.largura}px`);
+    if (!m.itemClicavel) falhas.push(`item do menu Cadastros coberto/recortado em ${m.largura}px`);
+  });
   if (erros.length) falhas.push('erros de JS: ' + erros.join(' | '));
 
   console.log(`container: ${alturaAntes}px -> ${alturaDepois}px`);
   console.log(`área de desenho: ${antes.tam.join('x')} -> ${depois.tam.join('x')}`);
   console.log(`zoom: ${antes.zoom} -> ${depois.zoom} (após ${RODADAS_DE_MARCACAO} marcações)`);
   console.log('rótulos: ' + JSON.stringify(rotulos, null, 1));
+  console.log('menu Cadastros: ' + menu.map(m => `${m.largura}px ${m.dentroDaTela && m.itemClicavel ? 'ok' : 'FALHA'}`).join(' · '));
   console.log('imagens em ' + SAIDA);
   console.log(falhas.length ? '\nFALHOU:\n- ' + falhas.join('\n- ') : '\nTUDO OK — mapa não encolheu e os rótulos estão na tela.');
   process.exit(falhas.length ? 1 : 0);

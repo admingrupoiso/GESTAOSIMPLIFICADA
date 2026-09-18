@@ -139,7 +139,7 @@ async function main() {
   checar('rótulo mostra o nome do módulo', rotuloSemClassif.includes('Piquete Teste'));
   checar('rótulo mostra a quantidade de animais do lote', /30\s*animais/.test(rotuloSemClassif));
   // Sem classificação não há área útil: mostrar "0,00%" faria o pasto parecer perdido.
-  checar('pasto sem classificação pede classificação, não mostra 0%', /a classificar/.test(rotuloSemClassif) && !/aproveit/.test(rotuloSemClassif));
+  checar('pasto sem classificação pede classificação, não mostra 0%', /a classificar/.test(rotuloSemClassif) && !/%/.test(rotuloSemClassif));
 
   doc.querySelector('nav button[data-aba="pastos"]').click();
   doc.querySelector('#corpo tr td.acao').click();
@@ -147,7 +147,7 @@ async function main() {
   doc.querySelector('button[onclick="salvarPasto()"]').click();
   doc.querySelector('nav button[data-aba="mapa"]').click();
   await esperar(150);
-  checar('rótulo mostra o % de aproveitamento do pasto (Produtivo 2 = 80%)', /80,00%\s*aproveit/.test(lerRotulo()));
+  checar('rótulo mostra o % de aproveitamento do pasto (Produtivo 2 = 80%)', /80,00%/.test(lerRotulo()));
 
   // Regressão do bug "o mapa vai diminuindo": marcar pasto e voltar pra aba Mapa
   // não pode reenquadrar (fitBounds) de novo — o zoom da pessoa tem que ficar de pé.
@@ -172,7 +172,7 @@ async function main() {
   w.alternarRotulosMapa(false);
   checar('rótulos podem ser desligados', !lerRotulo());
   w.alternarRotulosMapa(true);
-  checar('e ligados de novo', /aproveit/.test(lerRotulo()));
+  checar('e ligados de novo', /animais/.test(lerRotulo()) && /%/.test(lerRotulo()));
 
   w.abrirCadastroDoTalhao(0);
   checar('clicar no talhão leva pro Cadastro', doc.getElementById('cadastros').classList.contains('ativa'));

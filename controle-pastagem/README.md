@@ -166,6 +166,23 @@ seguiu se mostrando confiável o tempo todo.
   pasto parecer perdido); o detalhe completo, que antes era o tooltip do mouse, virou um
   quadro no canto do mapa (o Leaflet só aceita um tooltip por camada).
 
+- **v14**: correções do que quebrava na mão do usuário. **O menu "Cadastros" não abria** —
+  em nenhuma largura de tela: a `<nav>` tem `overflow-x:auto` (pra rolar no celular) e
+  `overflow` recorta filho posicionado, então o menu, que era `position:absolute` dentro
+  dela, era cortado inteiro. Virou `position:fixed`, encaixado embaixo do botão por
+  `posicionarMenuCadastros()`, que também o segura dentro da tela no celular. Os testes de
+  jsdom não pegavam isso porque olhavam classe CSS, não pixel — daí `tests/visual-check.js`
+  ter ganhado uma checagem que pergunta ao navegador quem está desenhado naquele ponto.
+  No mapa: `<MultiGeometry>` (Placemark com mais de uma parte) virava `GeometryCollection`
+  e era descartado em silêncio — agora cada parte vira um talhão; KMZ com mais de um `.kml`
+  dentro passou a ser lido por inteiro (antes só o primeiro encontrado); `NetworkLink` (o
+  arquivo que só aponta pros desenhos, sem trazê-los) agora é explicado em vez de virar
+  "nenhum talhão encontrado"; e abaixo do mapa entrou um resumo dizendo quantos desenhos
+  viraram talhão e **quais ficaram de fora e por quê** — sumiço silencioso era a pior
+  parte do problema. Os rótulos da v13 passaram a se esconder quando não cabem dentro do
+  talhão na tela (com 50+ piquetes viravam uma parede de texto por cima do desenho) e
+  linha/ponto solto só é rotulado quando tem animal lançado.
+
 ## Pendências conhecidas (não implementadas ainda)
 
 - **Multi-fazenda / multi-cliente**: hoje é uma conta = uma fazenda por vez (via
