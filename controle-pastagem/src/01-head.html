@@ -4,17 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Controle de Pastagem — Fazenda Vista Alegre | Go On Agro</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" onerror="carregarCssFallback(this,0)">
-<script>
-window.CSS_FALLBACK=['https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'];
-function carregarCssFallback(elAnterior, idx){
-  if(idx>=window.CSS_FALLBACK.length) return;
-  const l=document.createElement('link');
-  l.rel='stylesheet'; l.href=window.CSS_FALLBACK[idx];
-  l.onerror=()=>carregarCssFallback(l, idx+1);
-  document.head.appendChild(l);
-}
-</script>
+<!-- O CSS do Leaflet vem EMBUTIDO (src/00-leaflet.css, com as imagens em data URI):
+     sem internet o mapa não perde o estilo dos controles, e visualizadores que
+     bloqueiam folha de estilo de outro domínio deixam de quebrar o mapa. -->
+<!--LEAFLET_CSS-->
 <script>
 // Cada biblioteca externa tem 2 CDNs alternativos: se o principal (jsdelivr) falhar
 // (rede bloqueando o domínio, CDN fora do ar etc.), tenta o próximo automaticamente.

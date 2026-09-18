@@ -1689,7 +1689,26 @@ function importarJSON(ev){
   }catch(e){toast('Arquivo inválido.',true)}};
   r.readAsText(f); ev.target.value='';
 }
+// Salvar arquivo (CSV, backup JSON, biblioteca de versões).
+//
+// No uso normal — o .html solto, aberto com duplo clique — é o link de download de
+// sempre. Quando a mesma ferramenta está publicada como página web, o visualizador
+// bloqueia o download direto e quem entrega o arquivo é ele, mediante confirmação
+// do usuário; por isso o caminho preferencial é esse quando ele existe.
 function baixar(nome,conteudo,tipo){
+  const entregaDoVisualizador = (typeof window.claude!=='undefined' && window.claude && typeof window.claude.use==='function');
+  if(!entregaDoVisualizador){ baixarDireto(nome,conteudo,tipo); return; }
+  Promise.resolve(window.claude.use('downloads')).then(downloads=>{
+    if(!downloads) { baixarDireto(nome,conteudo,tipo); return; }
+    return downloads.save({filename:nome, data:conteudo})
+      .then(()=>toast('Arquivo salvo: '+nome+'.'))
+      .catch(err=>{
+        if(err && err.code==='declined') return;               // o usuário disse não
+        baixarDireto(nome,conteudo,tipo);                       // qualquer outro caso: tenta o jeito normal
+      });
+  }).catch(()=>baixarDireto(nome,conteudo,tipo));
+}
+function baixarDireto(nome,conteudo,tipo){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([conteudo],{type:tipo})); a.download=nome; a.click();
 }
