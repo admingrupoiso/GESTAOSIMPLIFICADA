@@ -1,0 +1,2461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Pastagem — Fazenda Vista Alegre | Go On Agro</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" onerror="carregarCssFallback(this,0)">
+<script>
+window.CSS_FALLBACK=['https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'];
+function carregarCssFallback(elAnterior, idx){
+  if(idx>=window.CSS_FALLBACK.length) return;
+  const l=document.createElement('link');
+  l.rel='stylesheet'; l.href=window.CSS_FALLBACK[idx];
+  l.onerror=()=>carregarCssFallback(l, idx+1);
+  document.head.appendChild(l);
+}
+</script>
+<script>
+// Cada biblioteca externa tem 2 CDNs alternativos: se o principal (jsdelivr) falhar
+// (rede bloqueando o domínio, CDN fora do ar etc.), tenta o próximo automaticamente.
+// Definido ANTES dos <script src> abaixo para garantir que exista mesmo se algum
+// falhar instantaneamente (onerror não pode disparar antes da função existir).
+window.LIBS_FALLBACK={
+  leaflet:['https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'],
+  jszip:['https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js','https://unpkg.com/jszip@3.10.2/dist/jszip.min.js'],
+  togeojson:['https://unpkg.com/@mapbox/togeojson@0.16.2/togeojson.js'],
+  xlsx:['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'],
+};
+window.LIBS_STATUS={leaflet:'tentando', jszip:'tentando', togeojson:'tentando', xlsx:'tentando'};
+function carregarBibliotecaFallback(nome, idx){
+  idx=idx||0;
+  const urls=window.LIBS_FALLBACK[nome]||[];
+  if(idx>=urls.length){ window.LIBS_STATUS[nome]='falhou'; return; }
+  const s=document.createElement('script');
+  s.src=urls[idx];
+  s.onload=()=>{ window.LIBS_STATUS[nome]='ok'; };
+  s.onerror=()=>carregarBibliotecaFallback(nome, idx+1);
+  document.head.appendChild(s);
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" onerror="carregarBibliotecaFallback('leaflet')"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.2/dist/jszip.min.js" onerror="carregarBibliotecaFallback('jszip')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mapbox/togeojson@0.16.2/togeojson.js" onerror="carregarBibliotecaFallback('togeojson')"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="carregarBibliotecaFallback('xlsx')"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --ouro:#D4A820; --verde-floresta:#1A2A0F; --verde-campo:#2B4D1A;
+  --creme:#F5EAC8; --solo:#0D0D0D; --painel:#141a0e; --painel2:#1c2513;
+  --borda:rgba(212,168,32,.18); --texto:#e8e2cc; --mudo:#9a9478;
+  --bom:#7fb95a; --alerta:#D4A820; --ruim:#c0563e;
+}
+:root[data-tema="claro"]{
+  --ouro:#A8790E; --verde-floresta:#1A2A0F; --verde-campo:#2B4D1A;
+  --creme:#20301a; --solo:#FBF7EA; --painel:#FFFFFF; --painel2:#F3EEDD;
+  --borda:rgba(26,42,15,.15); --texto:#2b2b22; --mudo:#7a7360;
+  --bom:#3f7a24; --alerta:#A8790E; --ruim:#a83f2a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--solo);color:var(--texto);font-family:'Inter',sans-serif;font-size:14px;
+  background-image:radial-gradient(ellipse at 20% -10%, rgba(43,77,26,.35), transparent 55%),
+                   radial-gradient(ellipse at 90% 110%, rgba(212,168,32,.07), transparent 50%);
+  transition:background-color .2s,color .2s}
+:root[data-tema="claro"] body{
+  background-image:radial-gradient(ellipse at 20% -10%, rgba(43,77,26,.05), transparent 55%),
+                   radial-gradient(ellipse at 90% 110%, rgba(212,168,32,.06), transparent 50%);
+}
+.bebas{font-family:'Bebas Neue',sans-serif;letter-spacing:.04em}
+header{padding:26px 30px 18px;border-bottom:1px solid var(--borda);display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px}
+header h1{font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:.95;color:var(--creme);letter-spacing:.05em}
+header h1 span{color:var(--ouro)}
+header .sub{color:var(--mudo);font-size:12px;text-transform:uppercase;letter-spacing:.2em;margin-top:6px}
+.brand{text-align:right}
+.brand .logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--ouro);letter-spacing:.18em}
+.brand .data-hoje{font-size:11px;color:var(--mudo);margin-top:4px}
+nav{display:flex;gap:4px;padding:0 30px;border-bottom:1px solid var(--borda);overflow-x:auto}
+nav button{background:none;border:none;color:var(--mudo);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.1em;
+  padding:14px 18px 12px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:color .15s}
+nav button:hover{color:var(--creme)}
+nav button.ativo{color:var(--ouro);border-bottom-color:var(--ouro)}
+main{padding:24px 30px 60px;max-width:1360px;margin:0 auto}
+.aba{display:none}.aba.ativa{display:block}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:22px}
+.kpi{background:var(--painel);border:1px solid var(--borda);border-radius:8px;padding:14px 16px;position:relative;overflow:hidden;
+  box-shadow:0 3px 14px rgba(0,0,0,.28);cursor:pointer;transition:transform .13s ease,border-color .13s ease}
+.kpi:hover{transform:translateY(-2px);border-color:var(--ouro)}
+.kpi.parado{cursor:default}
+.kpi.parado:hover{transform:none;border-color:var(--borda)}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ouro)}
+.kpi .rotulo{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:var(--mudo)}
+.kpi .valor{font-family:'Bebas Neue',sans-serif;font-size:29px;color:var(--creme);margin-top:4px;line-height:1}
+.kpi .extra{font-size:11px;color:var(--ouro);margin-top:3px}
+
+.filtros{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:flex-end}
+.filtro{display:flex;flex-direction:column;gap:4px}
+.filtro label{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:var(--mudo)}
+select,input[type=text],input[type=number],input[type=date],input[type=url],input[type=tel],input[type=email],textarea{
+  background:var(--painel2);border:1px solid var(--borda);color:var(--texto);
+  padding:8px 10px;border-radius:4px;font-family:'Inter',sans-serif;font-size:13px;min-width:130px}
+textarea{min-width:100%;resize:vertical;font-family:'Inter',sans-serif}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--ouro)}
+.btn{background:var(--ouro);color:#0d0d0d;border:none;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.1em;
+  padding:9px 20px;border-radius:4px;cursor:pointer;transition:filter .15s}
+.btn:hover{filter:brightness(1.12)}
+.btn.fantasma{background:transparent;color:var(--ouro);border:1px solid var(--ouro)}
+.btn.perigo{background:transparent;color:var(--ruim);border:1px solid var(--ruim)}
+.btn:disabled{opacity:.35;cursor:not-allowed;filter:none}
+
+.grade-graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(390px,1fr));gap:14px}
+.cartao{background:var(--painel);border:1px solid var(--borda);border-radius:8px;padding:18px;margin-bottom:14px;box-shadow:0 3px 14px rgba(0,0,0,.28)}
+.cartao h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.08em;color:var(--creme);margin-bottom:12px;border-bottom:1px solid var(--borda);padding-bottom:8px;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.cartao h3 small{color:var(--mudo);font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+.cartao h3 .direita{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.link-relatorio{font-family:'Inter',sans-serif;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ouro);
+  cursor:pointer;background:none;border:none;padding:0}
+.link-relatorio:hover{color:var(--creme);text-decoration:underline}
+canvas{width:100%;display:block}
+
+.envoltorio-tabela{overflow-x:auto;background:var(--painel);border:1px solid var(--borda);border-radius:6px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font-family:'Bebas Neue',sans-serif;font-size:13.5px;letter-spacing:.06em;color:var(--ouro);text-align:left;
+  padding:10px 9px;border-bottom:2px solid var(--borda);white-space:nowrap;position:sticky;top:0;background:var(--painel);cursor:pointer}
+th:hover{color:var(--creme)}
+td{padding:7px 9px;border-bottom:1px solid rgba(212,168,32,.07);white-space:nowrap;color:var(--texto)}
+tr:hover td{background:rgba(212,168,32,.05)}
+.etiqueta{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.et-classificado{background:rgba(127,185,90,.15);color:var(--bom)}
+.et-pendente{background:rgba(154,148,120,.15);color:var(--mudo)}
+.paginacao{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:12px;color:var(--mudo);font-size:12px}
+.paginacao button{background:var(--painel2);border:1px solid var(--borda);color:var(--texto);padding:5px 12px;border-radius:4px;cursor:pointer}
+.paginacao button:disabled{opacity:.35;cursor:default}
+td.acao{cursor:pointer;color:var(--ouro);font-weight:600}
+
+.form-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.campo{display:flex;flex-direction:column;gap:5px}
+.campo.largo{grid-column:1/-1}
+.campo label{font-size:10.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--mudo)}
+.campo .dica{font-size:10px;color:var(--mudo);font-style:italic}
+.calculado{background:rgba(43,77,26,.3);border:1px dashed var(--verde-campo);border-radius:4px;padding:8px 10px;
+  font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--ouro);min-height:38px}
+.calculado small{display:block;font-family:'Inter',sans-serif;font-size:9.5px;color:var(--mudo);letter-spacing:.05em;font-style:italic}
+.aviso-formula{background:rgba(212,168,32,.08);border-left:3px solid var(--ouro);padding:12px 16px;border-radius:0 4px 4px 0;
+  font-size:12.5px;color:var(--mudo);margin-bottom:20px;line-height:1.6}
+.aviso-formula b{color:var(--ouro)}
+.aviso-alerta{background:rgba(192,86,62,.1);border-left:3px solid var(--ruim);padding:10px 16px;border-radius:0 4px 4px 0;
+  font-size:12px;color:var(--texto);margin-bottom:16px;line-height:1.5}
+
+.capa{display:flex;flex-direction:column;gap:14px}
+.capa .titulo-rel{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.05em;color:var(--creme)}
+.capa .sub-rel{color:var(--mudo);font-size:12px;margin-top:2px}
+.capa .sub-rel span{color:var(--ouro)}
+.capa-grade{display:flex;flex-wrap:wrap;gap:28px}
+.rotulo-capa{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--mudo)}
+.valor-capa{font-family:'Bebas Neue',sans-serif;font-size:19px;color:var(--creme);margin-top:2px;letter-spacing:.03em}
+a.valor-capa{text-decoration:none;color:var(--ouro)}
+a.valor-capa:hover{color:var(--creme)}
+
+.rel-grade{display:grid;grid-template-columns:1fr;gap:16px}
+.assinatura{margin-top:30px;border-top:1px solid var(--borda);padding-top:14px;display:flex;justify-content:space-between;color:var(--mudo);font-size:11px;flex-wrap:wrap;gap:8px}
+.assinatura input{border:none;border-bottom:1px solid var(--borda);background:none;min-width:240px;color:var(--creme)}
+
+.barra-acoes{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--verde-campo);color:var(--creme);padding:12px 20px;border-radius:6px;
+  border:1px solid var(--ouro);font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;max-width:320px}
+.toast.mostrar{opacity:1}
+
+.lista-anexos{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.anexo{display:flex;align-items:center;gap:12px;background:var(--painel2);border:1px solid var(--borda);border-radius:5px;padding:9px 12px;flex-wrap:wrap}
+.anexo .nome{color:var(--creme);font-weight:600;flex:1;min-width:160px;word-break:break-all}
+.anexo .meta{color:var(--mudo);font-size:11px}
+.anexo .acoes{display:flex;gap:8px}
+.anexo .acoes a,.anexo .acoes span{cursor:pointer;color:var(--ouro);font-size:12px;text-decoration:none}
+.anexo .acoes .excluir{color:var(--ruim)}
+.barra-armazenamento{height:6px;border-radius:3px;background:var(--painel2);overflow:hidden;margin-top:6px}
+.barra-armazenamento .fill{height:100%;background:linear-gradient(90deg,var(--verde-campo),var(--ouro))}
+
+/* Altura elástica com piso: o container nunca colapsa (mapa "encolhendo") e o
+   usuário ainda pode arrastar a borda de baixo pra aumentar — o ResizeObserver
+   do app reavisa o Leaflet do novo tamanho. */
+#mapaLeaflet{width:100%;height:clamp(380px,58vh,640px);min-height:340px;resize:vertical;border-radius:6px;border:1px solid var(--borda);overflow:hidden;background:#0a0e07;margin-top:12px;position:relative}
+.check-mapa{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--texto);cursor:pointer;user-select:none}
+.check-mapa input{accent-color:var(--ouro);cursor:pointer}
+/* Quadro de detalhe do talhão, no canto livre do mapa (os controles do Leaflet ficam
+   nos outros três cantos). */
+.mapa-detalhe{position:absolute;left:10px;bottom:10px;z-index:1100;max-width:min(320px,62%);
+  background:rgba(10,14,7,.88);border:1px solid var(--ouro);border-radius:5px;padding:7px 10px;
+  font-size:11.5px;line-height:1.5;color:var(--creme);pointer-events:none;backdrop-filter:blur(2px)}
+.mapa-detalhe .vazio{color:var(--mudo)}
+:root[data-tema="claro"] .mapa-detalhe{background:rgba(255,253,247,.94);color:#2a2510}
+/* Malha de segurança: reimplementa só as regras ESTRUTURAIS do Leaflet (posicionamento).
+   Se o leaflet.css externo falhar ao carregar (rede bloqueada), o mapa ainda ocupa o espaço
+   certo e não "desmonta" visualmente — só perde o polimento visual dos controles. */
+#mapaLeaflet.leaflet-container{position:relative;overflow:hidden;z-index:0}
+#mapaLeaflet .leaflet-pane,#mapaLeaflet .leaflet-tile,#mapaLeaflet .leaflet-marker-icon,
+#mapaLeaflet .leaflet-marker-shadow,#mapaLeaflet .leaflet-tile-container,#mapaLeaflet .leaflet-image-layer,
+#mapaLeaflet .leaflet-layer{position:absolute;left:0;top:0}
+#mapaLeaflet .leaflet-container{overflow:hidden}
+#mapaLeaflet .leaflet-tile-pane{z-index:200}#mapaLeaflet .leaflet-overlay-pane{z-index:400}
+#mapaLeaflet .leaflet-shadow-pane{z-index:500}#mapaLeaflet .leaflet-marker-pane{z-index:600}
+#mapaLeaflet .leaflet-tooltip-pane{z-index:650}#mapaLeaflet .leaflet-popup-pane{z-index:700}
+#mapaLeaflet .leaflet-map-pane{position:absolute;left:0;top:0}
+#mapaLeaflet .leaflet-control-container .leaflet-top,#mapaLeaflet .leaflet-control-container .leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+#mapaLeaflet .leaflet-top{top:0}#mapaLeaflet .leaflet-bottom{bottom:0}
+#mapaLeaflet .leaflet-left{left:0}#mapaLeaflet .leaflet-right{right:0}
+#mapaLeaflet .leaflet-control{pointer-events:auto;float:left;clear:both}
+#mapaLeaflet .leaflet-tooltip{position:absolute;background:var(--painel2);color:var(--creme);border:1px solid var(--ouro);font-family:'Inter',sans-serif;font-size:12px;padding:4px 8px;border-radius:4px;white-space:nowrap;pointer-events:none}
+/* Rótulo fixo sobre o talhão — tamanho de legenda, sem "balão", pra não brigar com o
+   satélite embaixo. Duas linhas: nome do módulo e os números do lote. */
+.leaflet-tooltip.rotulo-talhao,#mapaLeaflet .leaflet-tooltip.rotulo-talhao{
+  background:rgba(10,14,7,.72);border:none;box-shadow:none;border-radius:4px;
+  padding:2px 6px;text-align:center;white-space:nowrap;line-height:1.25;
+  color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9);font-family:'Inter',sans-serif}
+.leaflet-tooltip.rotulo-talhao::before{display:none}
+.rotulo-talhao .rt-nome{display:block;font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--creme)}
+.rotulo-talhao .rt-dado{display:block;font-size:10px;font-weight:600;opacity:.95}
+:root[data-tema="claro"] .leaflet-tooltip.rotulo-talhao{background:rgba(255,253,247,.82);color:#2a2510;text-shadow:none}
+:root[data-tema="claro"] .rotulo-talhao .rt-nome{color:#2a2510}
+.talhao-item{display:flex;align-items:center;gap:12px;background:var(--painel2);border:1px solid var(--borda);border-radius:5px;padding:9px 12px;margin-bottom:8px;flex-wrap:wrap;transition:border-color .15s,background .15s}
+.talhao-item.selecionado{border-color:var(--ouro);background:rgba(212,168,32,.1)}
+.talhao-item .talhao-original{min-width:170px;color:var(--mudo);font-size:12px}
+.talhao-item .talhao-original::before{content:'Original: ';font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;display:block;color:var(--mudo);opacity:.7}
+.talhao-item input[type=text]{flex:1;min-width:160px}
+.badge-manejo{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:600;margin:1px 3px 1px 0;color:#0d0d0d}
+.subgrupo{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.1em;color:var(--ouro);text-transform:uppercase;
+  margin:20px 0 10px;padding-top:14px;border-top:1px dashed var(--borda)}
+.subgrupo:first-child{margin-top:0;padding-top:0;border-top:none}
+details.cartao summary{cursor:pointer;list-style:none;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.08em;color:var(--creme)}
+details.cartao summary::-webkit-details-marker{display:none}
+details.cartao summary::after{content:' ▾';color:var(--ouro)}
+details.cartao[open] summary::after{content:' ▴'}
+details.cartao[open] summary{margin-bottom:12px;border-bottom:1px solid var(--borda);padding-bottom:8px;display:block}
+.chip-filtro{display:inline-block;background:none;border:1px solid var(--ouro);color:var(--ouro);
+  padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin:2px 4px 2px 0;cursor:pointer;transition:background .15s,color .15s}
+.chip-filtro:hover{color:#0d0d0d!important;background:var(--cor-chip,var(--ouro))!important}
+.linha-chips{margin-top:8px;line-height:2.1}
+.legenda-html{margin-top:10px;display:flex;flex-direction:column;gap:2px}
+.item-legenda{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--texto);transition:background .12s}
+.item-legenda:hover{background:var(--painel2)}
+.dot-legenda{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.nav-dropdown{position:relative;display:inline-block}
+.nav-dropdown-btn{background:none;border:none;color:var(--mudo);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.1em;
+  padding:14px 18px 12px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:color .15s}
+.nav-dropdown-btn:hover{color:var(--creme)}
+.nav-dropdown.aberto .nav-dropdown-btn,.nav-dropdown.ativo .nav-dropdown-btn{color:var(--ouro);border-bottom-color:var(--ouro)}
+.nav-dropdown-menu{display:none;position:absolute;top:100%;left:0;background:var(--painel);border:1px solid var(--borda);border-radius:0 0 6px 6px;
+  min-width:200px;z-index:50;box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.nav-dropdown.aberto .nav-dropdown-menu{display:block}
+.nav-dropdown-menu button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--texto);font-family:'Inter',sans-serif;
+  font-size:13px;padding:10px 16px;cursor:pointer}
+.nav-dropdown-menu button:hover{background:var(--painel2);color:var(--ouro)}
+.nav-dropdown-menu button.subativo{color:var(--ouro);font-weight:600}
+.subnav-cadastros{display:flex;gap:4px;margin-bottom:18px;border-bottom:1px solid var(--borda);flex-wrap:wrap}
+.subnav-cadastros button{background:none;border:none;color:var(--mudo);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.08em;
+  padding:9px 14px;cursor:pointer;border-bottom:2px solid transparent}
+.subnav-cadastros button:hover{color:var(--creme)}
+.subnav-cadastros button.ativo{color:var(--ouro);border-bottom-color:var(--ouro)}
+.subaba{display:none}
+.subaba.subaba-ativa{display:block}
+.cartao-produtos{border-color:var(--verde-campo);border-width:1.5px}
+.cartao-produtos summary{color:var(--bom)}
+.cartao-produtos::before{content:'';display:block;height:3px;margin:-18px -18px 14px;border-radius:8px 8px 0 0;background:var(--verde-campo)}
+.nota{background:var(--painel2);border:1px solid var(--borda);border-radius:5px;padding:12px 14px;margin-bottom:10px}
+.nota .cab{display:flex;justify-content:space-between;color:var(--mudo);font-size:11px;margin-bottom:6px}
+.nota .cab .del{color:var(--ruim);cursor:pointer}
+.nota .txt{color:var(--texto);font-size:13px;line-height:1.55;white-space:pre-wrap}
+.upload-label{display:inline-flex;align-items:center;gap:8px}
+
+@media print{
+  body{background:#fff;color:#111}
+  header,nav,.barra-acoes,.filtros,.paginacao,.link-relatorio{display:none!important}
+  .aba{display:none}.aba.ativa{display:block}
+  main{padding:0;max-width:100%}
+  .cartao{border:1px solid #ccc;break-inside:avoid;background:#fff;box-shadow:none}
+  .cartao h3,th{color:#1A2A0F}
+  td{color:#222;border-color:#ddd}
+  .kpi{background:#fff;border:1px solid #ccc;box-shadow:none;cursor:default}
+  .kpi:hover{transform:none}
+  .kpi .valor{color:#111}.kpi .rotulo,.kpi .extra{color:#555}
+  .grade-graficos{grid-template-columns:1fr 1fr!important;gap:10px}
+  canvas{max-height:200px}
+  .capa .titulo-rel{color:#1A2A0F}
+  .rotulo-capa{color:#666}.valor-capa{color:#111}
+  a.valor-capa{color:#7a5b0f}
+}
+@media(max-width:700px){header h1{font-size:28px}main{padding:16px}nav{padding:0 10px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>CONTROLE DE <span>PASTAGEM</span></h1>
+    <div class="sub" id="subFazenda">Cadastre a fazenda na aba Cliente & Fazenda</div>
+  </div>
+  <div class="brand">
+    <button class="btn fantasma" id="btnTema" onclick="alternarTema()" style="padding:5px 14px;font-size:12.5px;margin-bottom:8px">☀️ Modo Claro</button>
+    <div class="logo">GO ON AGRO</div>
+    <div class="data-hoje">Hoje: <span id="hoje"></span> · <span id="totalGeral"></span> pastos cadastrados</div>
+  </div>
+</header>
+
+<nav>
+  <button class="ativo" data-aba="painel">Painel</button>
+  <button data-aba="pastos">Pastos</button>
+  <button data-aba="mapa">Mapa</button>
+  <div class="nav-dropdown" id="dropdownCadastros">
+    <button class="nav-dropdown-btn" onclick="alternarMenuCadastros(event)">Cadastros ▾</button>
+    <div class="nav-dropdown-menu" id="menuCadastros">
+      <button data-aba="cadastros" data-subaba="sub-pastos">Pastos / Piquetes</button>
+      <button data-aba="cadastros" data-subaba="sub-modulos">Módulos</button>
+      <button data-aba="cadastros" data-subaba="sub-produtos">Produtos</button>
+      <button data-aba="cadastros" data-subaba="sub-cliente">Cliente &amp; Fazenda</button>
+    </div>
+  </div>
+  <button data-aba="relatorios">Relatórios</button>
+  <button data-aba="versoes">Versões Salvas</button>
+</nav>
+
+<main>
+<!-- ============ PAINEL ============ -->
+<section id="painel" class="aba ativa">
+  <div class="barra-acoes" style="justify-content:space-between">
+    <span class="dica" style="font-size:11.5px">Clique em qualquer indicador ou gráfico para abrir a análise completa no Relatório.</span>
+    <button class="btn fantasma" onclick="irParaRelatorio()">Ver Relatório Completo →</button>
+  </div>
+  <div class="filtros" id="filtrosPainel"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grade-graficos">
+    <div class="cartao"><h3><span>Área Total por Módulo</span><span class="direita"><small>top 15 · hectares</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gModulo" height="260"></canvas></div>
+    <div class="cartao"><h3><span>Classificação do Pasto</span><span class="direita"><small>distribuição</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gClassif" height="200"></canvas><div class="legenda-html" id="legClassif"></div></div>
+    <div class="cartao"><h3><span>Ação de Manejo</span><span class="direita"><small>nº de pastos</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gManejo" height="200"></canvas><div class="legenda-html" id="legManejo"></div></div>
+    <div class="cartao"><h3><span>Espécie do Capim</span><span class="direita"><small>área total · ha</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gCapim" height="260"></canvas></div>
+    <div class="cartao"><h3><span>Tipo de Aguada</span><span class="direita"><small>nº de pastos</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gAguada" height="170"></canvas><div class="legenda-html" id="legAguada"></div></div>
+    <div class="cartao"><h3><span>Tipo de Cocho</span><span class="direita"><small>nº de pastos</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gCocho" height="170"></canvas><div class="legenda-html" id="legCocho"></div></div>
+  </div>
+  <p class="dica" style="display:block;margin-top:6px">Clique em qualquer linha da legenda (ex.: "Degradação 2") para ver só esses pastos na tabela.</p>
+</section>
+
+<!-- ============ PASTOS ============ -->
+<section id="pastos" class="aba">
+  <div class="filtros" id="filtrosTabela"></div>
+  <div class="barra-acoes">
+    <input type="text" id="busca" placeholder="Buscar pasto, módulo, capim, manejo…" style="flex:1;min-width:220px">
+    <button class="btn fantasma" onclick="exportarCSV()">Exportar CSV</button>
+    <button class="btn fantasma" onclick="exportarJSON()">Backup JSON Completo</button>
+    <label class="btn fantasma upload-label">Importar JSON<input type="file" accept=".json" style="display:none" onchange="importarJSON(event)"></label>
+  </div>
+  <div class="dica" style="display:block;margin-bottom:10px;font-size:11.5px">
+    Cor do manejo: <span class="badge-manejo" style="background:#E5484D;font-weight:800">Reforma</span>
+    <span class="badge-manejo" style="background:#5B9BD5">Herbicida</span>
+    <span class="badge-manejo" style="background:#FFC000">Calagem</span>
+    <span class="badge-manejo" style="background:#70AD47">Adubo</span>
+    <span class="badge-manejo" style="background:#ED7D31">Roçada</span>
+    — recriada a partir da formatação condicional da planilha original.
+  </div>
+  <div class="envoltorio-tabela" style="max-height:600px;overflow-y:auto">
+    <table id="tabela">
+      <thead><tr id="cabecalho"></tr></thead>
+      <tbody id="corpo"></tbody>
+    </table>
+  </div>
+  <div class="paginacao">
+    <span id="infoPag"></span>
+    <button id="pAnt">‹ Anterior</button>
+    <button id="pProx">Próxima ›</button>
+  </div>
+</section>
+
+<!-- ============ CADASTRO ============ -->
+<section id="cadastros" class="aba">
+  <div class="subnav-cadastros">
+    <button data-subaba="sub-pastos" class="ativo" onclick="irParaSubCadastro('sub-pastos')">Pastos / Piquetes</button>
+    <button data-subaba="sub-modulos" onclick="irParaSubCadastro('sub-modulos')">Módulos</button>
+    <button data-subaba="sub-produtos" onclick="irParaSubCadastro('sub-produtos')">Produtos</button>
+    <button data-subaba="sub-cliente" onclick="irParaSubCadastro('sub-cliente')">Cliente &amp; Fazenda</button>
+  </div>
+
+  <div id="sub-pastos" class="subaba subaba-ativa">
+    <div class="cartao">
+      <h3><span>Importar Pastos de uma Planilha</span><small>XLSX, XLS ou CSV</small></h3>
+      <p class="dica" style="display:block;margin-bottom:12px">Envie uma planilha de outra fazenda ou um levantamento pronto — você escolhe qual coluna do arquivo corresponde a qual campo daqui. Pastos com o mesmo nome de um já cadastrado são atualizados; os novos são criados.</p>
+      <div class="barra-acoes">
+        <label class="btn upload-label">Selecionar Arquivo
+          <input type="file" id="inputImportar" accept=".xlsx,.xls,.csv" style="display:none" onchange="carregarArquivoImportar(event)">
+        </label>
+        <span class="dica" id="infoImportarArquivo" style="font-size:11.5px;color:var(--mudo)"></span>
+      </div>
+      <div id="areaMapeamentoImportar" style="display:none;margin-top:16px">
+        <p class="dica" style="display:block;margin-bottom:10px">Confira o mapeamento abaixo (tentamos adivinhar pelo nome da coluna) e ajuste onde precisar.</p>
+        <div id="listaMapeamento"></div>
+        <div class="barra-acoes" style="margin-top:14px">
+          <button class="btn" onclick="executarImportacao()">Importar Pastos</button>
+          <button class="btn fantasma" onclick="cancelarImportacao()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="aviso-formula">
+      <b>Fórmulas automáticas da planilha original preservadas:</b> % Área Empastada = definida pela Classificação do Pasto
+      (Degradação 1 a 3 = 40–60% · Produtivo 1 a 4 = 70–100%) · Área Útil (ha) = Área Total × % Área Empastada.
+      <b>UA</b> = (Qtd. Animais × Peso Médio) ÷ 450 · <b>Taxa de Lotação</b> = UA ÷ Área Útil (nunca a Área Total).
+      Já os produtos (Calcário, MAP, Adubo, Herbicida, Outros) são sempre calculados sobre a Área Total, nunca a Útil.
+      Os campos verdes são calculados em tempo real — você não precisa preenchê-los.
+    </div>
+
+    <div class="cartao">
+      <h3 id="tituloForm">Novo Pasto</h3>
+
+      <div class="subgrupo">Identificação do Pasto/Piquete</div>
+      <div class="form-grade">
+        <div class="campo"><label>Pasto *</label><input type="text" id="fPasto" placeholder="ex.: Pasto 107"></div>
+        <div class="campo"><label>Módulo / Talhão</label><select id="fModulo"></select><input type="text" id="fModuloNovo" placeholder="ou digite um novo" style="margin-top:5px"></div>
+        <div class="campo"><label>Sistema de Produção</label><select id="fSistema"></select><input type="text" id="fSistemaNovo" placeholder="ou digite um novo" style="margin-top:5px"></div>
+      </div>
+
+      <div class="subgrupo">Área e Classificação</div>
+      <div class="form-grade">
+        <div class="campo"><label>Área Total (ha) *</label><input type="number" id="fArea" step="0.01" placeholder="ex.: 12.50"></div>
+        <div class="campo"><label>Classificação do Pasto</label><select id="fClassif"></select></div>
+        <div class="campo"><label>% Área Empastada (calculado)</label><div class="calculado" id="cPct">—<small>=VLOOKUP(Classificação)</small></div></div>
+        <div class="campo"><label>Área Útil / ha (calculado)</label><div class="calculado" id="cAreaUtil">—<small>=Área Total × % Empastada</small></div></div>
+      </div>
+
+      <div class="subgrupo">Cobertura e Infraestrutura</div>
+      <div class="form-grade">
+        <div class="campo"><label>Espécie do Capim</label><select id="fCapim"></select><input type="text" id="fCapimNovo" placeholder="ou digite uma nova" style="margin-top:5px"></div>
+        <div class="campo"><label>Tipo de Aguada</label><select id="fAguada"></select><input type="text" id="fAguadaNovo" placeholder="ou digite uma nova" style="margin-top:5px"></div>
+        <div class="campo"><label>Tipo de Cocho</label><select id="fCocho"></select><input type="text" id="fCochoNovo" placeholder="ou digite um novo" style="margin-top:5px"></div>
+        <div class="campo"><label>Quant. Cocho (m)</label><input type="number" id="fQtCocho" step="0.1" placeholder="ex.: 6"></div>
+      </div>
+
+      <div class="subgrupo">Animais e Lotação</div>
+      <div class="form-grade">
+        <div class="campo"><label>Quantidade de Animais</label><input type="number" id="fQtdAnimais" step="1" placeholder="ex.: 30"></div>
+        <div class="campo"><label>Peso Médio (kg)</label><input type="number" id="fPesoMedio" step="1" placeholder="ex.: 380"></div>
+        <div class="campo"><label>UA (calculado)</label><div class="calculado" id="cUA">—<small>=(Qtd. × Peso) ÷ 450</small></div></div>
+        <div class="campo"><label>Taxa de Lotação (calculado)</label><div class="calculado" id="cLotacao">—<small>=UA ÷ Área Útil</small></div></div>
+      </div>
+
+      <div class="subgrupo">Aplicações de Produtos <span style="color:var(--mudo);font-family:'Inter',sans-serif;font-size:10.5px;letter-spacing:.05em;text-transform:none">— calculado sobre a Área Total</span></div>
+      <div id="listaAplicacoesForm"></div>
+      <div class="barra-acoes" style="margin-top:10px"><button class="btn fantasma" onclick="adicionarAplicacaoForm()">+ Adicionar Produto a este Pasto</button></div>
+
+      <div class="subgrupo">Manejo e Observações</div>
+      <div class="form-grade">
+        <div class="campo"><label>Ação de Manejo</label><select id="fManejo"></select><input type="text" id="fManejoNovo" placeholder="ou digite uma nova" style="margin-top:5px"></div>
+        <div class="campo largo"><label>OBS</label><input type="text" id="fObs" placeholder="ex.: reforma 50%, misturado com paredão…"></div>
+      </div>
+
+      <div class="barra-acoes" style="margin-top:22px">
+        <button class="btn" onclick="salvarPasto()" id="btnSalvar">Salvar Pasto</button>
+        <button class="btn fantasma" onclick="limparForm()">Limpar</button>
+        <button class="btn perigo" id="btnExcluir" style="display:none" onclick="excluirPasto()">Excluir Registro</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sub-modulos" class="subaba">
+    <div class="cartao">
+      <h3><span>Cadastro de Módulos</span><small>listar, renomear em bloco, cadastrar antes de ter pasto</small></h3>
+      <div class="form-grade">
+        <div class="campo largo"><label>Nome do Novo Módulo</label><input type="text" id="mNome" placeholder="ex.: Fundo do Sítio"></div>
+      </div>
+      <div class="barra-acoes" style="margin-top:10px"><button class="btn fantasma" onclick="adicionarModulo()">Cadastrar Módulo</button></div>
+      <p class="dica" style="display:block;margin:14px 0 8px">Renomear aqui atualiza automaticamente todos os pastos e o talhão do mapa que usam esse módulo. <span id="contagemModulos" style="color:var(--mudo)"></span></p>
+      <div id="listaModulosRegistrados"></div>
+    </div>
+  </div>
+
+  <div id="sub-produtos" class="subaba">
+    <div class="cartao cartao-produtos">
+      <h3><span>Catálogo de Produtos</span><small>Adubo · Calcário · Herbicida · Outros</small></h3>
+      <div class="form-grade">
+        <div class="campo"><label>Nome do Produto</label><input type="text" id="pNome" placeholder="ex.: Ureia"></div>
+        <div class="campo"><label>Categoria</label><select id="pCategoria">
+          <option>Adubo</option><option>Calcário</option><option>Herbicida</option><option>Outro</option>
+        </select></div>
+        <div class="campo"><label>Unidade</label><select id="pUnidade">
+          <option value="kg/ha">kg/ha</option><option value="ton/ha">ton/ha</option><option value="L/ha">L/ha</option>
+        </select></div>
+      </div>
+      <div class="barra-acoes" style="margin-top:14px"><button class="btn fantasma" onclick="adicionarProduto()">Adicionar Produto ao Catálogo</button></div>
+      <div id="listaProdutos" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <div id="sub-cliente" class="subaba">
+    <div class="cartao">
+      <h3>Dados do Cliente e da Propriedade</h3>
+      <div class="form-grade">
+        <div class="campo"><label>Cliente / Produtor</label><input type="text" id="clNome" placeholder="ex.: José da Silva"></div>
+        <div class="campo"><label>Fazenda</label><input type="text" id="clFazenda" placeholder="ex.: Vista Alegre"></div>
+        <div class="campo"><label>Consultor Responsável</label><input type="text" id="clConsultor" placeholder="ex.: Renata Erler — Zootecnista"></div>
+        <div class="campo"><label>Telefone / WhatsApp</label><input type="tel" id="clTelefone" placeholder="(00) 00000-0000"></div>
+        <div class="campo"><label>E-mail</label><input type="email" id="clEmail" placeholder="contato@exemplo.com"></div>
+        <div class="campo"><label>Município / UF</label><input type="text" id="clMunicipio" placeholder="ex.: Barreiras/BA"></div>
+      </div>
+      <div class="barra-acoes" style="margin-top:20px">
+        <button class="btn" onclick="salvarCliente()">Salvar Dados do Cliente</button>
+      </div>
+    </div>
+
+    <div class="cartao">
+      <h3>Localização</h3>
+      <div class="form-grade">
+        <div class="campo largo"><label>Link do Google Maps ou Google Earth</label>
+          <input type="url" id="clMapa" placeholder="https://maps.app.goo.gl/... ou https://earth.google.com/...">
+          <span class="dica">Cole aqui o link de compartilhamento da localização da sede ou do perímetro da fazenda.</span>
+        </div>
+      </div>
+      <div class="barra-acoes" style="margin-top:16px">
+        <button class="btn" onclick="salvarCliente()">Salvar Localização</button>
+        <button class="btn fantasma" id="btnAbrirMapa" onclick="abrirMapa()">Abrir Localização ↗</button>
+      </div>
+    </div>
+
+    <div class="cartao">
+      <h3>Anexos da Propriedade <small>PDF, KML, KMZ, imagens…</small></h3>
+      <div class="barra-acoes">
+        <label class="btn upload-label">Anexar Arquivo(s)
+          <input type="file" id="inputAnexo" multiple accept=".pdf,.kml,.kmz,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gpx" style="display:none" onchange="anexarArquivos(event)">
+        </label>
+        <span class="dica" id="infoArmazenamento" style="font-size:11px;color:var(--mudo)"></span>
+      </div>
+      <div class="barra-armazenamento"><div class="fill" id="barraArmazFill" style="width:0%"></div></div>
+      <div class="lista-anexos" id="listaAnexos"></div>
+    </div>
+
+    <div class="cartao">
+      <h3>Observações do Consultor</h3>
+      <div class="campo largo">
+        <textarea id="notaTexto" rows="3" placeholder="Registre aqui observações de campo, visitas, recomendações…"></textarea>
+      </div>
+      <div class="barra-acoes" style="margin-top:12px">
+        <button class="btn" onclick="adicionarObservacao()">Adicionar Observação</button>
+      </div>
+      <div id="listaObservacoes" style="margin-top:16px"></div>
+    </div>
+
+    <div class="cartao" style="border-color:var(--ruim)">
+      <h3 style="color:var(--ruim)">Zona de Risco</h3>
+      <p class="dica" style="display:block;margin-bottom:12px">Apaga TUDO deste navegador — inclusive os pastos de exemplo da Vista Alegre, se estiverem carregados — voltando a ferramenta pra um estado zerado, pronto pra outra fazenda. Não pode ser desfeito — se quiser manter uma cópia, exporte o Backup JSON antes (aba Pastos).</p>
+      <button class="btn perigo" id="btnLimparDados" onclick="pedirConfirmacaoLimpar()">Limpar Todos os Dados</button>
+      <div id="confirmacaoLimpar" style="display:none;margin-top:14px">
+        <p class="dica" style="display:block;color:var(--ruim);margin-bottom:10px;font-weight:600">Tem certeza? Isso apaga tudo agora e não pode ser desfeito.</p>
+        <div class="barra-acoes">
+          <button class="btn perigo" onclick="limparTodosDados()">Sim, apagar tudo</button>
+          <button class="btn fantasma" onclick="cancelarLimpar()">Cancelar</button>
+        </div>
+      </div>
+      <p class="dica" style="display:block;margin:16px 0 8px">Quer só dar uma olhada em como a ferramenta funciona? Carregue os 106 pastos de exemplo da Fazenda Vista Alegre (não mexe no que você já tiver cadastrado).</p>
+      <button class="btn fantasma" onclick="carregarDadosExemplo()">Carregar Dados de Exemplo (Vista Alegre)</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MAPA ============ -->
+<section id="mapa" class="aba">
+  <div class="cartao">
+    <h3><span>Mapa da Propriedade</span><small>KMZ ou KML</small></h3>
+    <div class="barra-acoes">
+      <label class="btn upload-label">Carregar Mapa (KMZ/KML)
+        <input type="file" id="inputMapa" accept=".kmz,.kml" style="display:none" onchange="carregarArquivoMapa(event)">
+      </label>
+      <button class="btn fantasma" onclick="removerMapa()">Remover Mapa</button>
+      <button class="btn fantasma" onclick="enquadrarMapaTudo()" title="Volta a mostrar a fazenda inteira">Enquadrar tudo</button>
+      <label class="check-mapa" title="Mostra, sobre cada talhão, quantos animais estão no lote e o aproveitamento do pasto">
+        <input type="checkbox" id="chkRotulosMapa" checked onchange="alternarRotulosMapa(this.checked)"> Rótulos nos talhões
+      </label>
+      <span class="dica" id="infoMapaArquivo" style="font-size:11.5px;color:var(--mudo)"></span>
+    </div>
+    <div class="dica" style="display:block;margin-bottom:8px;font-size:11.5px">
+      Cor do talhão = classificação predominante (por área):
+      <span class="badge-manejo" style="background:#E5484D">Degradação 3</span>
+      <span class="badge-manejo" style="background:#E8794B">Degradação 2</span>
+      <span class="badge-manejo" style="background:#F2A65A">Degradação 1</span>
+      <span class="badge-manejo" style="background:#B8D98D;color:#0d0d0d">Produtivo 1</span>
+      <span class="badge-manejo" style="background:#8FC966;color:#0d0d0d">Produtivo 2</span>
+      <span class="badge-manejo" style="background:#5FAE46">Produtivo 3</span>
+      <span class="badge-manejo" style="background:#2B4D1A">Produtivo 4</span>
+      <span class="badge-manejo" style="background:#9a9478">Sem classificação</span>
+    </div>
+    <div class="dica" style="display:block;margin-bottom:8px;font-size:11.5px">
+      Rótulo do talhão: <b>nome do módulo</b>, <b>quantidade de animais</b> daquele lote e
+      <b>% de aproveitamento do pasto</b> (área útil ÷ área total). O mapa guarda o zoom onde você
+      parou — use "Enquadrar tudo" para voltar à fazenda inteira.
+    </div>
+    <div id="mapaLeaflet">
+      <div id="mapaDetalhe" class="mapa-detalhe"></div>
+    </div>
+    <div class="aviso-alerta" id="mapaAviso" style="display:none;margin-top:12px"></div>
+  </div>
+
+  <div class="cartao">
+    <h3><span>Talhões Identificados</span><small id="contagemTalhoes"></small></h3>
+    <p class="dica" style="display:block;margin-bottom:12px">A maioria dos talhões já chega com nome do próprio arquivo. Ajuste o campo "Nome do Módulo" só onde precisar — é ele que conecta o talhão do mapa aos pastos cadastrados. Clique em "Destacar no mapa" para confirmar qual talhão é qual antes de renomear.</p>
+    <div id="listaTalhoes"></div>
+    <datalist id="listaModulosDatalist"></datalist>
+  </div>
+</section>
+
+<!-- ============ RELATÓRIOS ============ -->
+<section id="relatorios" class="aba">
+  <div class="barra-acoes" style="justify-content:space-between">
+    <span class="dica" style="font-size:11.5px">Este relatório reúne capa, indicadores, gráficos e tabelas — pronto para gerar PDF.</span>
+    <button class="btn" onclick="window.print()">Imprimir / Gerar PDF</button>
+  </div>
+
+  <div class="cartao capa">
+    <div>
+      <div class="titulo-rel">RELATÓRIO DE CONTROLE DE PASTAGEM</div>
+      <div class="sub-rel">Fazenda <span id="capaFazenda"></span> · Emitido em <span id="capaData"></span> · Go On Agro</div>
+    </div>
+    <div class="capa-grade">
+      <div><div class="rotulo-capa">Cliente / Produtor</div><div class="valor-capa" id="capaCliente"></div></div>
+      <div><div class="rotulo-capa">Consultor Responsável</div><div class="valor-capa" id="capaConsultor"></div></div>
+      <div><div class="rotulo-capa">Município / UF</div><div class="valor-capa" id="capaMunicipio"></div></div>
+      <div><div class="rotulo-capa">Pastos no Relatório</div><div class="valor-capa" id="capaTotalPastos"></div></div>
+      <div><div class="rotulo-capa">Área Total</div><div class="valor-capa" id="capaAreaTotal"></div></div>
+      <div><div class="rotulo-capa">Localização</div><a id="capaMapaLink" href="#" target="_blank" rel="noopener" class="valor-capa">—</a></div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpisRel"></div>
+
+  <div class="grade-graficos">
+    <div class="cartao"><h3><span>Área Total por Módulo</span><small>top 15 · hectares</small></h3><canvas id="gModuloRel" height="230"></canvas></div>
+    <div class="cartao"><h3><span>Classificação do Pasto</span><small>distribuição</small></h3><canvas id="gClassifRel" height="230"></canvas></div>
+    <div class="cartao"><h3><span>Ação de Manejo</span><small>nº de pastos</small></h3><canvas id="gManejoRel" height="230"></canvas></div>
+    <div class="cartao"><h3><span>Espécie do Capim</span><small>área total · ha</small></h3><canvas id="gCapimRel" height="230"></canvas></div>
+    <div class="cartao"><h3><span>Tipo de Aguada</span><small>nº de pastos</small></h3><canvas id="gAguadaRel" height="210"></canvas></div>
+    <div class="cartao"><h3><span>Tipo de Cocho</span><small>nº de pastos</small></h3><canvas id="gCochoRel" height="210"></canvas></div>
+  </div>
+
+  <div class="rel-grade">
+    <div class="cartao"><h3><span>Resumo Executivo</span></h3><div id="relResumo" style="line-height:1.8;font-size:13.5px"></div></div>
+    <div class="cartao"><h3><span>Compra Consolidada</span><small>total a comprar por produto</small></h3><div class="envoltorio-tabela" style="border:none"><table id="relCompra"></table></div></div>
+    <div class="cartao"><h3><span>Análise por Módulo</span><small>área útil, UA e taxa de lotação</small></h3><div class="envoltorio-tabela" style="max-height:420px;overflow-y:auto;border:none"><table id="relModulo"></table></div></div>
+    <div class="cartao"><h3><span>Análise por Ação de Manejo</span></h3><div class="envoltorio-tabela" style="border:none"><table id="relManejo"></table></div></div>
+    <div class="cartao"><h3><span>Análise por Classificação do Pasto</span></h3><div class="envoltorio-tabela" style="border:none"><table id="relClassif"></table></div></div>
+    <div class="cartao"><h3><span>Análise por Espécie de Capim</span></h3><div class="envoltorio-tabela" style="max-height:420px;overflow-y:auto;border:none"><table id="relCapim"></table></div></div>
+  </div>
+  <div class="assinatura">
+    <div>Responsável Técnico: <input type="text" id="respTec" value=""></div>
+    <div>Cliente: <input type="text" id="respCliente" value=""></div>
+    <div>Emitido em <span id="dataEmissao"></span> · Go On Agro</div>
+  </div>
+</section>
+
+<!-- ============ VERSÕES SALVAS ============ -->
+<section id="versoes" class="aba">
+  <div class="cartao">
+    <h3><span>Minhas Versões</span><small>guarde um cenário, mude o que quiser e compare depois</small></h3>
+    <p class="dica" style="display:block;margin-bottom:14px">Cada versão guarda uma fotografia completa de tudo (pastos, cliente, mapa, produtos, módulos) no momento em que você salvar — assim dá pra testar um cenário, salvar, mudar de novo, e voltar a qualquer uma delas depois. Como esta ferramenta roda só no seu navegador (sem conta na nuvem), a Biblioteca é o jeito de levar suas versões para outro computador.</p>
+    <div class="barra-acoes">
+      <input type="text" id="nomeVersaoNova" placeholder="Nome da versão (ex.: Antes da adubação de outubro)" style="flex:1;min-width:240px">
+      <button class="btn" onclick="salvarVersaoAtual()">+ Salvar Versão Atual</button>
+      <button class="btn fantasma" onclick="exportarBibliotecaVersoes()">Exportar Biblioteca</button>
+      <label class="btn fantasma upload-label">Importar Biblioteca<input type="file" accept=".json" style="display:none" onchange="importarBibliotecaVersoes(event)"></label>
+    </div>
+    <div id="listaVersoes" style="margin-top:16px"></div>
+  </div>
+</section>
+</main>
+
+<div class="toast" id="toast"></div>
+<script>
+const RAW_ROWS = [["Pasto 1", "Herbicida+Adubo", "Fundo Fazenda", "Recria", 14.12, null, "MG5", null, "Bombona plastica", 6, null, null, 110], ["Pasto 2", "Herbicida+Adubo", "Fundo Fazenda", null, 12.23, null, "MG5", null, null, null, null, null, 110], ["Pasto 3", "Adubo", "Fundo Fazenda", null, 15.11, null, "MG5", null, null, null, null, null, 110], ["Pasto 4", "Adubo", "Fundo Fazenda", null, 14.37, null, "MG5", null, null, null, null, null, 110], ["Pasto 5", "Adubo", "Meio", null, 11.2, null, "Panicum Maximum cv. Massai", null, "Bombona plastica", 6, null, null, 100], ["Pasto 6", "Herbicida+Adubo", "Meio", null, 11.87, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 100], ["Pasto 7", "Herbicida+Adubo", "Meio", null, 11.15, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 100], ["Pasto 8", "Adubo", "Meio", null, 11.3, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 100], ["Pasto 9", "Herbicida+Adubo", "Cajueiro", null, 11.75, null, "MG5", null, "Bombona plastica", 6, null, null, 80], ["Pasto 10", "Herbicida", "Cajueiro", null, 11.35, null, "MG5", null, null, null, null, null, 80], ["Pasto 11", "Herbicida", "Cajueiro", null, 12.13, null, "MG5", null, null, null, null, null, 80], ["Pasto 12", "Herbicida+Adubo", "Cajueiro", null, 12.11, null, "MG5", null, null, null, null, null, 80], ["Pasto 13", "Herbicida", "Sapequeiro", null, 13.35, null, "Panicum Maximum cv. Mombaça", null, "Bombona plastica", 6, null, 1, 110], ["Pasto 14", "Herbicida", "Mangueira", null, 15.39, null, "Paredão", null, null, null, null, 1.3, 110], ["Pasto 15", "Adubo", "Açude", null, 12.96, null, "MG5", null, "Bombona plastica", 6, null, null, 80], ["Pasto 16", "Adubo", "Abiu", null, 13.42, null, "Paredão", null, null, null, null, null, 110], ["Pasto 17", "Adubo", "Açude", null, 9.9, null, "MG5", null, null, null, null, null, 60], ["Pasto 18", "Adubo", "Uxi", null, 11.93, null, "MG5", null, null, null, "reforma 50%", null, 60], ["Pasto 19", "Adubo", "Uxi", null, 11.85, null, "MG5", null, null, null, "reforma 50%", null, 60], ["Pasto 20", "Adubo", "Açude", null, 9.95, null, "MG5", null, null, null, null, null, 60], ["Pasto 21", "Adubo", "Pneu", null, 14.57, null, "MG5", null, null, null, null, null, 60], ["Pasto 22", "Adubo", "Pneu", null, 10.82, null, "MG5", null, null, null, null, null, 60], ["Pasto 23", "Adubo", "Vizinha Bambu", null, 14.23, null, "MG5", null, null, null, null, null, 60], ["Pasto 24", "Adubo", "Vizinha Bambu", null, 13.9, null, "MG5", null, null, null, null, null, 60], ["Pasto 25", "Adubo", "Bambu", null, 12.25, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 26", "Calagem+Adubo", "Bambu", null, 11.3, null, "Panicum Maximum cv. Mombaça", null, null, null, null, 1.5, 80], ["Pasto 27", "Adubo", "Estiva", null, 6.25, null, "Paredão", null, null, null, null, null, 80], ["Pasto 28", "Adubo", "Estiva", null, 9.23, null, "Paredão", null, null, null, null, null, 80], ["Pasto 29", "Adubo", "Alonso", null, 11.99, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 100], ["Pasto 30", "Adubo", "Ponte", null, 11.72, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 100], ["Pasto 31", "Adubo", "Piquiá", null, 14.03, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 100], ["Pasto 32", "Adubo", "Piquiá", null, 15.98, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 100], ["Pasto 33", "Herbicida", "Canavial", null, 9.1, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 100], ["Pasto 34", "Herbicida", "Canavial", null, 9.58, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 100], ["Pasto 35", "Herbicida", "Canavial", null, 9.49, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 100], ["Pasto 36", "Herbicida", "Canavial", null, 9.45, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 100], ["Pasto 37", "Adubo", "Escape", null, 12.15, null, "Brachiaria Humidicola", null, null, null, null, null, 60], ["Pasto 38", "Adubo", "Escape", null, 12.39, null, "Brachiaria Humidicola", null, null, null, null, null, 60], ["Pasto 39", "Adubo", "Ponte", null, 15.05, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 40", "Adubo", "Taboa", null, 15.28, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 41", "Adubo", "Taboa", null, 13.05, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 42", "Adubo", "Genipapo", null, 12.05, null, "Panicum Maximum cv. Mombaça", null, null, null, "metade quicuio", null, 80], ["Pasto 43", "Adubo", "Genipapo", null, 12.05, null, "Panicum Maximum cv. Mombaça", null, null, null, "metade quicuio", null, 80], ["Pasto 44", "Herbicida", "Pedra", null, 15.7, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 45", "Adubo", "Teixeira", null, 12.9, null, "Panicum Maximum cv. Mombaça", null, null, null, "misturado com paredão", null, 80], ["Pasto 46", "Adubo", "Teixeira", null, 10.5, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 47", "Adubo", "Teixeira", null, 10.69, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 48", "Adubo", "Sede", null, 10.48, null, "Paredão", null, null, null, null, null, 80], ["Pasto 49", "Adubo", "Sede", null, 7.7, null, "Paredão", null, null, null, null, null, 80], ["Pasto 50", "Adubo", "Sede", null, 7.6, null, "Paredão", null, null, null, null, null, 80], ["Pasto 51", "Adubo", "Frente Galpão", null, 15.47, null, "MG5", null, null, null, null, null, 60], ["Pasto 52", "Herbicida+Adubo", "Curral", null, 12.11, null, "MG5", null, null, null, null, null, 60], ["Pasto 53", "Herbicida", "Curral", null, 12.25, null, "MG5", null, null, null, null, null, 60], ["Pasto 54", "Herbicida", "Frente Galpão", null, 15.74, null, "MG5", null, null, null, null, null, 60], ["Pasto 55", "Adubo", "Vizinha Juarez", null, 9.85, null, "MG5", null, null, null, null, null, 60], ["Pasto 56", "Adubo", "Vizinha Juarez", null, 9.8, null, "MG5", null, null, null, null, null, 60], ["Pasto 57", "Herbicida", "Vizinha Celino", null, 8.8, null, "MG5", null, null, null, null, null, 60], ["Pasto 58", "Herbicida", "Vizinha Celino", null, 9.15, null, "MG5", null, null, null, null, null, 60], ["Pasto 59", "Adubo", "Celino", null, 10.1, null, "MG5", null, null, null, null, null, 60], ["Pasto 60", "Adubo", "Celino", null, 10.15, null, "MG5", null, null, null, null, null, 60], ["Pasto 61", "Adubo", "Celino", null, 10.13, null, "MG5", null, null, null, null, null, 60], ["Pasto 62", "Adubo", "Celino", null, 10.11, null, "MG5", null, null, null, null, null, 60], ["Pasto 63", "Adubo", "Vizinha Celino", null, 9.2, null, "MG5", null, null, null, null, null, 60], ["Pasto 64", "Adubo", "Vizinha Celino", null, 9.25, null, "MG5", null, null, null, null, null, 60], ["Pasto 65", "Adubo", "Vizinha Celino", null, 20.8, null, "MG5", null, null, null, null, null, 60], ["Pasto 66", "Adubo", "Vizinha Celino", null, 11, null, "MG5", null, null, null, null, null, 60], ["Pasto 67", "Adubo", "Fundão", null, 12.8, null, "MG5", null, null, null, null, null, 60], ["Pasto 68", "Adubo", "Fundão", null, 11.18, null, "MG5", null, null, null, null, null, 60], ["Pasto 69", "Adubo", "Fundão", null, 12.5, null, "MG5", null, null, null, null, null, 60], ["Pasto 70", "Adubo", "Vizinha Ameixeira", null, 10.75, null, "MG5", null, null, null, null, null, 60], ["Pasto 71", "Herbicida", "Ameixeira", null, 13.32, null, "MG5", null, null, null, null, null, 60], ["Pasto 72", "Adubo", "Vizinha Ameixeira", null, 11.86, null, "MG5", null, null, null, null, null, 60], ["Pasto 73", "Adubo", "Trator", null, 12.47, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 74", "Adubo", "Trator", null, 12.32, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 75", "Adubo", "Trator", null, 12.25, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 76", "Adubo", "Trator", null, 12.36, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 77", "Adubo", "Piçarreira", null, 14.55, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 78", "Adubo", "Piçarreira", null, 14.83, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 79", "Adubo", "Piçarreira", null, 14.47, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 80", "Adubo", "Piçarreira", null, 14.59, null, "Panicum Maximum cv. Mombaça", null, null, null, null, null, 80], ["Pasto 81", "Adubo", "Goiabeira", null, 12.2, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 80], ["Pasto 82", "Adubo", "Goiabeira", null, 11.95, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 80], ["Pasto 83", "Adubo", "Lurdes", null, 10.15, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 80], ["Pasto 84", "Adubo", "Lurdes", null, 10.45, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 80], ["Pasto 85", "Adubo", "Vizinha Lurdes", null, 10.9, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 80], ["Pasto 86", "Adubo", "Massai", null, 11.6, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 80], ["Pasto 87", "Calagem+Adubo", "Goiabal", null, 10.1, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 88", "Calagem+Adubo", "Goiabal", null, 10.55, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 89", "Calagem+Adubo", "Antonio Felicio", null, 9.7, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 90", "Calagem+Adubo", "Antonio Felicio", null, 9.86, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 91", "Calagem+Adubo", "Castanheira", null, 11.78, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 92", "Calagem+Adubo", "Goiabal", null, 9.85, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 93", "Calagem+Adubo", "Goiabal", null, 11.1, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 94", "Calagem+Adubo", "Castanheira", null, 11.71, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 95", "Calagem+Adubo", "Do Alto", null, 10.95, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 96", "Calagem+Adubo", "Do Alto", null, 11.85, null, "Panicum Maximum cv. Massai", null, null, null, null, 1, 80], ["Pasto 97", "Adubo", "Do Alto", null, 12.09, null, "Panicum Maximum cv. Massai", null, null, null, "massai/tamani", null, 80], ["Pasto 98", "Adubo", "Do Alto", null, 10.69, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 80], ["Pasto 99", "Adubo", "Do Alto", null, 10.6, null, "Panicum Maximum cv. Massai", null, null, null, null, null, 80], ["Pasto 100", "Adubo", "Vizinha do Alto", null, 12.19, null, "Panicum Maximum cv. Massai", null, null, null, "massai/tamani", null, 80], ["Pasto 101", "Adubo", "Ferreira", null, 7.8, null, "Panicum Maximum cv. Massai", null, null, null, "massai/tamani", null, 80], ["Pasto 102", "Adubo", "Ferreira", null, 7.5, null, "Panicum Maximum cv. Massai", null, null, null, "massai/tamani", null, 80], ["Pasto 103", "Adubo", "Baixão", null, 10.4, null, "Panicum Maximum cv. Massai", null, null, null, "massai/zuri", null, 80], ["Pasto 104", "Adubo", "Baixão", null, 10.6, null, "Panicum Maximum cv. Massai", null, null, null, "massai/zuri", null, 80], ["Pasto 105", "Adubo", "Casa Branca", null, 9.2, null, "MG5", null, null, null, null, null, 60], ["Pasto 106", "Adubo", "Casa Branca", null, 10.05, null, "MG5", null, null, null, null, null, 60]];
+const CLASSIF = [["Degradação 1", 0.4], ["Degradação 2", 0.5], ["Degradação 3", 0.6], ["Produtivo 1", 0.7], ["Produtivo 2", 0.8], ["Produtivo 3", 0.9], ["Produtivo 4", 1]];
+const MODULOS = ["Fundo Fazenda", "Meio", "Cajueiro", "Sapequeiro", "Mangueira", "Açude", "Abiu", "Estiva", "Bambu", "Vizinha Bambu", "Uxi", "Pneu", "Ponte", "Alonso", "Piquiá", "Canavial", "Escape", "Taboa", "Sede", "Frente Galpão", "Vizinha Juarez", "Celino", "Vizinha Celino", "Teixeira", "Pedra", "Goiabeira", "Lurdes", "Piçarreira", "Ameixeira", "Vizinha Ameixeira", "Fundão", "Goiabal", "Castanheira", "Antonio Felicio", "Do Alto", "Vizinha do Alto", "Vizinha Valdeci", "Genipapo", "Curral", "Trator", "Vizinha Lurdes", "Massai", "Ferreira", "Baixão", "Casa Branca"];
+const CAPINS = ["Panicum Maximum cv. Zuri", "Panicum Maximum cv. Massai", "Panicum Maximum cv. Mombaça", "Panicum Maximum cv. Tanzânia", "Panicum Maximum cv. Tamani", "Brachiaria Brizantha cv Marandu", "Brachiaria Brizantha cv. Xaraes", "Brachiaria Brizantha cv. Piatã", "Brachiaria Brizantha cv. Paiaguas", "Brachiaria Brizantha cv. Ypiporã", "Brachiaria Dictyoneura", "Brachiaria Humidicola", "Andropogon Gayanos cv. Planaltina", "Brachiaria Hibrida cv Mulato", "Brachiaria Hibrida cv Dunamis", "Panicum Maximum Miyagi", "Cynodon Dactylon Cost Cros", "Paredão", "MG5"];
+const AGUADAS = ["Água Natural", "Água encanada"];
+const COCHOS = ["Borração", "Bombona plastica", "Madeira", "Cimento", "Lona"];
+const MANEJOS = ["Herbicida", "Herbicida+Calagem", "Calagem+Herbicida+Adubo", "Herbicida+Adubo", "Adubo", "Roçada", "Roçada+Herbicida", "Reforma", "Calagem"];
+const SISTEMAS = ["Recria", "Cria", "Engorda", "Cria-Recria-Engorda", "Confinamento", "Semiconfinamento"];
+const HOJE = new Date();
+const fmtN = n => (n==null||isNaN(n)) ? '—' : n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtI = n => (n==null||isNaN(n)) ? '—' : Math.round(n).toLocaleString('pt-BR');
+const fmtP = n => n==null ? '—' : (n*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
+const fmtD = d => d ? d.toLocaleDateString('pt-BR') : '—';
+const soma = (arr,k) => arr.reduce((s,r)=>s+(r[k]||0),0);
+function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function q(s){ return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function extensao(nome){ const m=/\.([a-zA-Z0-9]+)$/.exec(nome||''); return m?m[1].toUpperCase():'ARQ'; }
+function fmtBytes(n){
+  if(n<1024) return n+' B';
+  if(n<1024*1024) return (n/1024).toFixed(1)+' KB';
+  return (n/1024/1024).toFixed(2)+' MB';
+}
+
+// ---- Catálogo de Produtos (Adubo, Calcário, Herbicida, Outros) ----
+function catalogoDefault(){
+  return [
+    {id:'calcario', nome:'Calcário', categoria:'Calcário', unidade:'ton/ha'},
+    {id:'map', nome:'MAP', categoria:'Adubo', unidade:'kg/ha'},
+  ];
+}
+let catalogoProdutos = catalogoDefault();
+function modulosRegistradosDefault(){ return [...MODULOS]; }
+let modulosRegistrados = modulosRegistradosDefault();
+function moduloEmUso(nome){ return todos().some(r=>r.modulo===nome); }
+function produtoPorId(id){ return catalogoProdutos.find(p=>p.id===id); }
+function produtoEmUso(id){ return todos().some(r=>(r.aplicacoes||[]).some(a=>a.produtoId===id)); }
+
+// ---- Modelo: cada pasto vira objeto com fórmulas vivas ----
+// Migração fiel: as colunas originais "calcario ton/há" e "MAP kg/há" da planilha
+// viram, automaticamente, as duas primeiras aplicações do novo modelo de produtos.
+function montar(a, origem){
+  const o = {
+    pasto:a[0], manejo:a[1], modulo:a[2], sistema:a[3], areaTotal:a[4]||0,
+    classificacao:a[5], capim:a[6], aguada:a[7], cocho:a[8], qtCocho:a[9],
+    obs:a[10], qtdAnimais:null, pesoMedio:null, aplicacoes:[], origem
+  };
+  if(a[11]!=null) o.aplicacoes.push({produtoId:'calcario', quantidadeHa:a[11]});
+  if(a[12]!=null) o.aplicacoes.push({produtoId:'map', quantidadeHa:a[12]});
+  recalc(o);
+  return o;
+}
+// Fórmulas: Área Empastada (%) = VLOOKUP(Classificação) · Área Útil = Total × %
+// UA = (Qtd. Animais × Peso Médio) ÷ 450 · Taxa de Lotação = UA ÷ Área Útil (SEMPRE área útil)
+// Total de cada produto = Quantidade/há × Área Total (SEMPRE área total, nunca a útil)
+function recalc(o){
+  const cl = CLASSIF.find(c=>c[0]===o.classificacao);
+  o.pctEmpastada = cl ? cl[1] : null;
+  o.areaUtil = o.pctEmpastada!=null ? (o.areaTotal||0)*o.pctEmpastada : 0;
+  o.ua = (o.qtdAnimais && o.pesoMedio) ? (o.qtdAnimais*o.pesoMedio)/450 : 0;
+  o.taxaLotacao = o.areaUtil>0 ? o.ua/o.areaUtil : null;
+  (o.aplicacoes||[]).forEach(ap=>{ ap.total = (ap.quantidadeHa||0)*(o.areaTotal||0); });
+}
+function resumoAplicacoes(r){
+  if(!r.aplicacoes || !r.aplicacoes.length) return '—';
+  return r.aplicacoes.map(a=>{
+    const p=produtoPorId(a.produtoId);
+    return escapeHtml((p?p.nome:'produto removido')+' '+fmtN(a.quantidadeHa)+(p?('/'+p.unidade.split('/')[0]):''));
+  }).join('; ');
+}
+// ---- Cores de manejo (recriadas da formatação condicional oculta da planilha original) ----
+// A planilha colorpa a coluna "Ação de Manejo" por palavra-chave: Reforma=vermelho/urgente,
+// Herbicida=azul, Calagem=dourado, Adubo=verde, Roçada=laranja. Reconstruído aqui como etiquetas,
+// cobrindo também combinações (ex.: "Herbicida+Adubo") que a formatação original deixava sem cor.
+const MANEJO_CORES=[
+  {chave:'Reforma', cor:'#E5484D', urgente:true},
+  {chave:'Herbicida', cor:'#5B9BD5'},
+  {chave:'Calagem', cor:'#FFC000'},
+  {chave:'Adubo', cor:'#70AD47'},
+  {chave:'Roçada', cor:'#ED7D31'},
+];
+function badgesManejo(texto){
+  if(!texto) return '—';
+  const achados=MANEJO_CORES.filter(m=>texto.toLowerCase().includes(m.chave.toLowerCase()));
+  if(!achados.length) return escapeHtml(texto);
+  return achados.map(m=>`<span class="badge-manejo" style="background:${m.cor}${m.urgente?';font-weight:800':''}">${escapeHtml(m.chave)}</span>`).join('')+
+    (achados.length===1 && achados[0].chave===texto ? '' : `<div class="dica" style="display:block;margin-top:2px">${escapeHtml(texto)}</div>`);
+}
+
+let baseRows = RAW_ROWS.map(a=>montar(a,'base'));
+let extras = [];
+let edicoes = {};
+// Controla se os pastos de exemplo (Vista Alegre, embutidos no arquivo) aparecem.
+// Instalação nova = começa vazia (sem carga). "Limpar Tudo" também esconde a base,
+// pra virar um zero de verdade — não só reverter pro exemplo.
+let ocultarBase = true;
+function clienteDefault(){
+  return {nome:'',fazenda:'',consultor:'',telefone:'',email:'',municipio:'',mapa:'',anexos:[],observacoes:[]};
+}
+let cliente = clienteDefault();
+// `vista` guarda onde o usuário estava olhando (centro + zoom). É o que faz o mapa
+// voltar exatamente no mesmo enquadramento depois de marcar um piquete, em vez de
+// reenquadrar a fazenda inteira toda vez (o que dava a sensação de "ir diminuindo").
+function mapaPropDefault(){
+  return {arquivoNome:'', dataUpload:'', kmlTexto:'', talhoes:[], vista:null, mostrarRotulos:true};
+}
+let mapaProp = mapaPropDefault();
+const filtros = {modulo:'', manejo:'', classificacao:'', capim:'', aguada:'', cocho:''};
+
+const LS_KEY='controle_pastagem_vista_alegre_v1';
+// Armazenamento seguro: usa localStorage quando o navegador permite;
+// em ambientes restritos (ex.: visualizador embutido) cai para memória sem lançar erro.
+const armazem=(function(){
+  const mem={};
+  let ls=null;
+  try{ ls=window.localStorage; ls.setItem('__t','1'); ls.removeItem('__t'); }catch(e){ ls=null; }
+  return {
+    get k(){return ls?'disco':'memoria'},
+    ler(k){ try{return ls?ls.getItem(k):(mem[k]??null)}catch(e){return mem[k]??null} },
+    gravar(k,v){ try{ if(ls){ls.setItem(k,v);return} }catch(e){} mem[k]=v; }
+  };
+})();
+try{
+  const raw = armazem.ler(LS_KEY);
+  if(raw){
+    const s = JSON.parse(raw||'{}');
+    // Compatibilidade: quem já tinha dados salvos de uma versão anterior a este controle
+    // continua vendo a base normalmente, a não ser que já tivesse escondido explicitamente.
+    ocultarBase = (s.ocultarBase!==undefined) ? s.ocultarBase : false;
+    catalogoProdutos = (s.catalogoProdutos && s.catalogoProdutos.length) ? s.catalogoProdutos : catalogoDefault();
+    modulosRegistrados = (s.modulosRegistrados && s.modulosRegistrados.length) ? s.modulosRegistrados : modulosRegistradosDefault();
+    (s.extras||[]).forEach(e=>{recalc(e);extras.push(e)});
+    edicoes = s.edicoes||{};
+    Object.values(edicoes).forEach(e=>recalc(e));
+    cliente = Object.assign(clienteDefault(), s.cliente||{});
+    cliente.anexos = cliente.anexos||[]; cliente.observacoes = cliente.observacoes||[];
+    mapaProp = Object.assign(mapaPropDefault(), s.mapaProp||{});
+    mapaProp.talhoes = mapaProp.talhoes||[];
+    Object.assign(filtros, s.filtros||{});
+  }
+  // raw nulo (primeira vez neste navegador) -> ocultarBase fica no default (true, começa vazio)
+}catch(e){}
+// Auto-descoberta: qualquer módulo já usado em algum pasto (inclusive digitado à mão
+// ou vindo de uma importação) entra no cadastro de módulos, mesmo que não estivesse na lista original.
+(function descobrirModulosUsados(){
+  const usados=new Set(todos().map(r=>r.modulo).filter(Boolean));
+  usados.forEach(m=>{ if(!modulosRegistrados.includes(m)) modulosRegistrados.push(m); });
+})();
+function persistir(){
+  try{ armazem.gravar(LS_KEY, JSON.stringify({extras, edicoes, cliente, mapaProp, catalogoProdutos, modulosRegistrados, ocultarBase, filtros})); }catch(e){}
+}
+function todos(){
+  const base = ocultarBase ? [] : baseRows.map(r=>edicoes[r.pasto]||r);
+  return base.concat(extras);
+}
+function carregarDadosExemplo(){
+  ocultarBase=false;
+  if(!cliente.fazenda) cliente.fazenda='Vista Alegre';
+  persistir(); atualizarTudo(); carregarCliente();
+  toast('Dados de exemplo carregados — '+fmtI(baseRows.length)+' pastos da Fazenda Vista Alegre.');
+}
+function resumoModulo(nomeModulo){
+  const alvo=normalizarTxt(nomeModulo);
+  const rs=todos().filter(r=>r.modulo && normalizarTxt(r.modulo)===alvo);
+  const areaTotal=soma(rs,'areaTotal'), areaUtil=soma(rs,'areaUtil');
+  const qtdAnimais=soma(rs,'qtdAnimais');
+  const somaPesoXQtd=rs.reduce((s,r)=>s+((r.qtdAnimais||0)*(r.pesoMedio||0)),0);
+  const pesoMedio=qtdAnimais? somaPesoXQtd/qtdAnimais : null;
+  const ua=soma(rs,'ua');
+  const lotacao=areaUtil? ua/areaUtil : null;
+  const areaPorClassif={};
+  rs.forEach(r=>{ if(r.classificacao) areaPorClassif[r.classificacao]=(areaPorClassif[r.classificacao]||0)+r.areaTotal; });
+  let classifPredominante=null, maiorArea=0;
+  Object.entries(areaPorClassif).forEach(([c,a])=>{ if(a>maiorArea){ maiorArea=a; classifPredominante=c; } });
+  const areaClassificada=Object.values(areaPorClassif).reduce((s,a)=>s+a,0);
+  const pctAreaClassificada = areaTotal? areaClassificada/areaTotal*100 : 0;
+  // Aproveitamento do pasto = quanto da área total é área útil empastada (a mesma
+  // conta da coluna "% Empastada" da planilha, agregada por módulo).
+  const pctAproveitamento = areaTotal? areaUtil/areaTotal*100 : null;
+  return {rs, nPastos:rs.length, areaTotal, areaUtil, qtdAnimais, pesoMedio, ua, lotacao, classifPredominante, pctAreaClassificada, pctAproveitamento};
+}
+// ---- Cores por Classificação do Pasto (semáforo: vermelho/laranja = degradado, verde = produtivo) ----
+const CLASSIF_CORES={
+  'Degradação 1':'#F2A65A', 'Degradação 2':'#E8794B', 'Degradação 3':'#E5484D',
+  'Produtivo 1':'#B8D98D', 'Produtivo 2':'#8FC966', 'Produtivo 3':'#5FAE46', 'Produtivo 4':'#2B4D1A',
+};
+function corClassificacao(nome){ return CLASSIF_CORES[nome] || '#9a9478'; }
+
+// ---- Filtros ----
+const defs = [
+  ['modulo','Módulo / Talhão', ()=>uniq('modulo')],
+  ['manejo','Ação de Manejo', ()=>uniq('manejo')],
+  ['classificacao','Classificação', ()=>uniq('classificacao')],
+  ['capim','Espécie do Capim', ()=>uniq('capim')],
+  ['aguada','Tipo de Aguada', ()=>uniq('aguada')],
+  ['cocho','Tipo de Cocho', ()=>uniq('cocho')],
+];
+function uniq(k){
+  const vals = todos().map(r=> (r[k]==null||r[k]==='') ? '(Não informado)' : r[k]);
+  return [...new Set(vals)].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
+}
+function renderFiltros(idDiv){
+  const div=document.getElementById(idDiv); div.innerHTML='';
+  defs.forEach(([k,rotulo,ops])=>{
+    const w=document.createElement('div'); w.className='filtro';
+    w.innerHTML=`<label>${rotulo}</label>`;
+    const sel=document.createElement('select');
+    sel.innerHTML=`<option value="">(Tudo)</option>`+ops().map(o=>`<option ${filtros[k]===o?'selected':''}>${escapeHtml(o)}</option>`).join('');
+    sel.onchange=()=>{filtros[k]=sel.value;atualizarTudo()};
+    w.appendChild(sel); div.appendChild(w);
+  });
+  const limpar=document.createElement('button'); limpar.className='btn fantasma'; limpar.textContent='Limpar filtros';
+  limpar.onclick=()=>{Object.keys(filtros).forEach(k=>filtros[k]='');atualizarTudo()};
+  div.appendChild(limpar);
+}
+function filtrar(){
+  const t=todos();
+  return t.filter(r=>Object.entries(filtros).every(([k,v])=>{
+    if(!v) return true;
+    const val = (r[k]==null||r[k]==='') ? '(Não informado)' : r[k];
+    return String(val)===v;
+  }));
+}
+
+// ---- KPIs ----
+function renderKpis(rs, targetId, clicavel){
+  targetId = targetId || 'kpis';
+  clicavel = clicavel!==false;
+  const areaTotal=soma(rs,'areaTotal'), areaUtil=soma(rs,'areaUtil');
+  const uaTotal=soma(rs,'ua');
+  const classificados=rs.filter(r=>r.classificacao).length;
+  const nModulos=new Set(rs.map(r=>r.modulo).filter(Boolean)).size;
+  const pctMedio = areaTotal? areaUtil/areaTotal*100 : 0;
+  const lotacaoMedia = areaUtil? uaTotal/areaUtil : null;
+  const kpis=[
+    ['Nº de Pastos', fmtI(rs.length), nModulos+' módulos/talhões'],
+    ['Área Total', fmtN(areaTotal)+' ha', 'média '+fmtN(rs.length?areaTotal/rs.length:0)+' ha/pasto'],
+    ['Área Útil', fmtN(areaUtil)+' ha', fmtN(pctMedio)+'% empastada'],
+    ['Classificados', fmtI(classificados)+' / '+fmtI(rs.length), fmtI(rs.length-classificados)+' pendentes'],
+    ['UA Total', fmtN(uaTotal)+' UA', fmtI(rs.filter(r=>r.qtdAnimais).length)+' pastos com animais'],
+    ['Taxa de Lotação', (lotacaoMedia!=null?fmtN(lotacaoMedia):'—')+' UA/ha', 'sobre a área útil'],
+  ];
+  const classe = clicavel ? 'kpi' : 'kpi parado';
+  const attrs = clicavel ? ' onclick="irParaRelatorio()" title="Ver no relatório completo"' : '';
+  document.getElementById(targetId).innerHTML=kpis.map(([r,v,e])=>
+    `<div class="${classe}"${attrs}><div class="rotulo">${r}</div><div class="valor">${v}</div><div class="extra">${e}</div></div>`).join('');
+}
+function irParaRelatorio(){
+  const btn=document.querySelector('nav button[data-aba="relatorios"]');
+  if(btn) btn.click();
+}
+
+// ---- Mini engine de gráficos (canvas puro) ----
+const CORES=['#D4A820','#7fb95a','#c0563e','#5a8db9','#b97fb0','#e0c068','#6db9a8','#9a9478','#d4742a','#88a050','#c0a0d0'];
+// Lê a cor ATUAL da variável CSS (muda sozinho com o tema claro/escuro — sem duplicar paleta aqui)
+function corVar(nome, fallback){
+  try{ const v=getComputedStyle(document.documentElement).getPropertyValue('--'+nome).trim(); return v||fallback; }catch(e){ return fallback; }
+}
+function prepCanvas(id){
+  const c=document.getElementById(id); if(!c) return null;
+  const dpr=window.devicePixelRatio||1;
+  const w=c.clientWidth||c.parentElement.clientWidth-36||400, h=+c.getAttribute('height');
+  if(w<=0) return null;
+  c.width=w*dpr; c.height=h*dpr; c.style.height=h+'px';
+  const ctx=c.getContext&&c.getContext('2d'); if(!ctx) return null;
+  ctx.scale(dpr,dpr); ctx.clearRect(0,0,w,h);
+  ctx.font='11px Inter'; return [ctx,w,h];
+}
+function donut(id, pares, rotuloCentro, semLegendaCanvas){
+  rotuloCentro = rotuloCentro || 'PASTOS';
+  const p0=prepCanvas(id); if(!p0)return; const [ctx,w,h]=p0;
+  const corMudo=corVar('mudo','#9a9478'), corCreme=corVar('creme','#F5EAC8'), corTexto=corVar('texto','#e8e2cc');
+  if(!pares.length){ctx.fillStyle=corMudo;ctx.fillText('Sem dados no filtro atual',20,40);return}
+  const total=pares.reduce((s,p)=>s+p[1],0)||1;
+  const R=h/2-20, r=R*0.6;
+  const cx = semLegendaCanvas ? w/2 : h/2+10, cy=h/2;
+  let ang=-Math.PI/2;
+  pares.forEach((p,i)=>{
+    const a2=ang+2*Math.PI*p[1]/total;
+    ctx.beginPath(); ctx.arc(cx,cy,R,ang,a2); ctx.arc(cx,cy,r,a2,ang,true); ctx.closePath();
+    ctx.fillStyle=CORES[i%CORES.length]; ctx.fill(); ang=a2;
+  });
+  ctx.fillStyle=corCreme; ctx.font='26px Bebas Neue'; ctx.textAlign='center';
+  ctx.fillText(fmtI(total),cx,cy+2); ctx.font='9px Inter'; ctx.fillStyle=corMudo; ctx.fillText(rotuloCentro,cx,cy+16);
+  if(semLegendaCanvas) return;
+  ctx.textAlign='left'; let y=Math.max(20,(h-pares.length*20)/2);
+  pares.forEach((p,i)=>{
+    ctx.fillStyle=CORES[i%CORES.length]; ctx.fillRect(cx+R+24,y-8,10,10);
+    ctx.fillStyle=corTexto; ctx.font='11.5px Inter';
+    ctx.fillText(`${String(p[0]).slice(0,26)} — ${fmtI(p[1])} (${(p[1]/total*100).toFixed(1)}%)`,cx+R+40,y+1); y+=20;
+  });
+}
+function barras(id, pares, fmt){
+  fmt = fmt || fmtI;
+  const p0=prepCanvas(id); if(!p0)return; const [ctx,w,h]=p0;
+  const corMudo=corVar('mudo','#9a9478'), corCreme=corVar('creme','#F5EAC8');
+  if(!pares.length){ctx.fillStyle=corMudo;ctx.fillText('Sem dados no filtro atual',20,40);return}
+  const max=Math.max(...pares.map(p=>p[1]))||1;
+  const bh=Math.min(22,(h-10)/pares.length-6), esq=Math.min(150, Math.max(...pares.map(p=>ctx.measureText(String(p[0])).width))+14);
+  pares.forEach((p,i)=>{
+    const y=8+i*((h-16)/pares.length), bw=(w-esq-70)*p[1]/max;
+    ctx.fillStyle=corMudo; ctx.textAlign='right'; ctx.fillText(String(p[0]).slice(0,24),esq-8,y+bh/2+4);
+    const g=ctx.createLinearGradient(esq,0,esq+bw,0); g.addColorStop(0,'#2B4D1A'); g.addColorStop(1,'#D4A820');
+    ctx.fillStyle=g; ctx.fillRect(esq,y,Math.max(bw,2),bh);
+    ctx.fillStyle=corCreme; ctx.textAlign='left'; ctx.fillText(fmt(p[1]),esq+bw+6,y+bh/2+4);
+  });
+}
+function somaGrupo(rs,k,vk){
+  const m={};
+  rs.forEach(r=>{ const g=(r[k]==null||r[k]==='')?'Não informado':r[k]; m[g]=(m[g]||0)+(r[vk]||0); });
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+function contarGrupo(rs,k){
+  const m={};
+  rs.forEach(r=>{ const g=(r[k]==null||r[k]==='')?'Não informado':r[k]; m[g]=(m[g]||0)+1; });
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+function classifPares(rs){
+  const m={}; CLASSIF.forEach(c=>m[c[0]]=0); let semClassif=0;
+  rs.forEach(r=>{ if(r.classificacao && m.hasOwnProperty(r.classificacao)) m[r.classificacao]++; else semClassif++; });
+  const pares = CLASSIF.map(c=>[c[0], m[c[0]]]).filter(p=>p[1]>0);
+  if(semClassif>0) pares.push(['Não Classificado', semClassif]);
+  return pares;
+}
+function renderGraficos(rs, sufixo){
+  sufixo = sufixo || '';
+  const semLegendaCanvas = !sufixo; // Painel: legenda vira HTML clicável embaixo · Relatório: mantém no canvas (impressão)
+  barras('gModulo'+sufixo, somaGrupo(rs,'modulo','areaTotal').slice(0,15), v=>fmtN(v));
+  donut('gClassif'+sufixo, classifPares(rs), 'PASTOS', semLegendaCanvas);
+  donut('gManejo'+sufixo, contarGrupo(rs,'manejo'), 'PASTOS', semLegendaCanvas);
+  barras('gCapim'+sufixo, somaGrupo(rs,'capim','areaTotal').slice(0,15), v=>fmtN(v));
+  donut('gAguada'+sufixo, contarGrupo(rs,'aguada'), 'PASTOS', semLegendaCanvas);
+  donut('gCocho'+sufixo, contarGrupo(rs,'cocho'), 'PASTOS', semLegendaCanvas);
+  if(!sufixo){
+    renderLegendaHtml('legClassif', classifPares(rs), 'classificacao', corClassificacao);
+    renderLegendaHtml('legManejo', contarGrupo(rs,'manejo'), 'manejo');
+    renderLegendaHtml('legAguada', contarGrupo(rs,'aguada'), 'aguada');
+    renderLegendaHtml('legCocho', contarGrupo(rs,'cocho'), 'cocho');
+  }
+}
+// Legenda em HTML de verdade (não desenhada no canvas) — clicável: clicar em qualquer
+// linha filtra a tabela de Pastos por aquele valor e já leva pra lá.
+function renderLegendaHtml(divId, pares, campo, corFn){
+  const div=document.getElementById(divId); if(!div) return;
+  if(!pares.length){ div.innerHTML=''; return; }
+  const total=pares.reduce((s,p)=>s+p[1],0)||1;
+  div.innerHTML=pares.map((p,i)=>{
+    const cor = corFn ? corFn(p[0]==='Não Classificado'?null:p[0]) : CORES[i%CORES.length];
+    const valorFiltro = (p[0]==='Não Classificado'||p[0]==='Não informado') ? '(Não informado)' : p[0];
+    return `<div class="item-legenda" onclick="filtrarEIrPastos('${escapeHtml(campo)}','${q(valorFiltro)}')" title="Ver esses pastos na tabela">
+      <span class="dot-legenda" style="background:${cor}"></span>
+      <span>${escapeHtml(String(p[0]).slice(0,30))} — ${fmtI(p[1])} (${(p[1]/total*100).toFixed(1)}%)</span>
+    </div>`;
+  }).join('');
+}
+function filtrarEIrPastos(campo, valor){
+  filtros[campo]=valor;
+  pagina=0;
+  atualizarTudo();
+  const btn=document.querySelector('nav button[data-aba="pastos"]');
+  if(btn) btn.click();
+}
+
+// ---- Tabela ----
+const COLS=[
+  ['pasto','Pasto',r=>escapeHtml(r.pasto)],
+  ['manejo','Manejo',r=>badgesManejo(r.manejo)],
+  ['modulo','Módulo',r=>escapeHtml(r.modulo||'—')],
+  ['sistema','Sistema',r=>escapeHtml(r.sistema||'—')],
+  ['areaTotal','Área Total (ha)',r=>fmtN(r.areaTotal)],
+  ['classificacao','Classificação',r=>r.classificacao ? `<span class="etiqueta" style="background:${corClassificacao(r.classificacao)}2e;color:${corClassificacao(r.classificacao)}">${escapeHtml(r.classificacao)}</span>` : `<span class="etiqueta et-pendente">Pendente</span>`],
+  ['pctEmpastada','% Empastada',r=>fmtP(r.pctEmpastada)],
+  ['areaUtil','Área Útil (ha)',r=>fmtN(r.areaUtil)],
+  ['capim','Capim',r=>escapeHtml(r.capim||'—')],
+  ['aguada','Aguada',r=>escapeHtml(r.aguada||'—')],
+  ['cocho','Cocho',r=>escapeHtml(r.cocho||'—')],
+  ['qtCocho','Qt. Cocho (m)',r=>r.qtCocho!=null?fmtN(r.qtCocho):'—'],
+  ['obs','OBS',r=>escapeHtml(r.obs||'—')],
+  ['qtdAnimais','Qtd. Animais',r=>r.qtdAnimais!=null?fmtI(r.qtdAnimais):'—'],
+  ['pesoMedio','Peso Médio (kg)',r=>r.pesoMedio!=null?fmtN(r.pesoMedio):'—'],
+  ['ua','UA',r=>r.ua?fmtN(r.ua):'—'],
+  ['taxaLotacao','Lotação (UA/ha)',r=>r.taxaLotacao!=null?fmtN(r.taxaLotacao):'—'],
+  ['aplicacoes','Aplicações (produto/ha)',r=>resumoAplicacoes(r)],
+];
+let pagina=0, PAG=50, ordem={k:'pasto',asc:true};
+document.getElementById('cabecalho').innerHTML=COLS.map(c=>`<th data-k="${c[0]}">${c[1]}</th>`).join('')+'<th>✎</th><th>🗺</th>';
+document.querySelectorAll('#cabecalho th[data-k]').forEach(th=>th.onclick=()=>{
+  const k=th.dataset.k; ordem.asc = ordem.k===k ? !ordem.asc : true; ordem.k=k; renderTabela();
+});
+function renderTabela(){
+  const qtxt=document.getElementById('busca').value.toLowerCase();
+  let rs=filtrar();
+  if(qtxt) rs=rs.filter(r=>(String(r.pasto)+' '+(r.manejo||'')+' '+(r.modulo||'')+' '+(r.capim||'')+' '+(r.obs||'')).toLowerCase().includes(qtxt));
+  rs=rs.slice().sort((a,b)=>{
+    let va=a[ordem.k], vb=b[ordem.k];
+    if(va==null)return 1; if(vb==null)return -1;
+    if(typeof va==='string'&&!isNaN(+va)&&va!==''&&!isNaN(+vb)&&vb!==''){va=+va;vb=+vb}
+    const c = va<vb?-1:va>vb?1:0; return ordem.asc?c:-c;
+  });
+  const tot=rs.length, maxPag=Math.max(Math.ceil(tot/PAG)-1,0);
+  pagina=Math.min(pagina,maxPag);
+  const fatia=rs.slice(pagina*PAG,(pagina+1)*PAG);
+  document.getElementById('corpo').innerHTML=fatia.map(r=>
+    '<tr>'+COLS.map(c=>`<td>${c[2](r)}</td>`).join('')+
+    `<td class="acao" onclick="editar('${q(r.pasto)}')">editar</td>`+
+    `<td class="acao" onclick="verModuloNoMapa('${q(r.modulo||'')}')" title="Destacar módulo no mapa">mapa</td></tr>`).join('');
+  document.getElementById('infoPag').textContent=`${fmtI(tot)} pastos · página ${pagina+1} de ${maxPag+1}`;
+  document.getElementById('pAnt').disabled=pagina===0;
+  document.getElementById('pProx').disabled=pagina>=maxPag;
+}
+document.getElementById('pAnt').onclick=()=>{pagina--;renderTabela()};
+document.getElementById('pProx').onclick=()=>{pagina++;renderTabela()};
+document.getElementById('busca').addEventListener('input',()=>{pagina=0;renderTabela()});
+
+// ---- Cadastro ----
+function opts(arr){ return `<option value="">— selecione / deixe em branco —</option>` + arr.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join(''); }
+function preencherSelects(){
+  document.getElementById('fManejo').innerHTML = opts(MANEJOS);
+  document.getElementById('fModulo').innerHTML = opts(modulosRegistrados);
+  document.getElementById('fSistema').innerHTML = opts(SISTEMAS);
+  document.getElementById('fCapim').innerHTML = opts(CAPINS);
+  document.getElementById('fAguada').innerHTML = opts(AGUADAS);
+  document.getElementById('fCocho').innerHTML = opts(COCHOS);
+  document.getElementById('fClassif').innerHTML = `<option value="">— Não classificado —</option>` +
+    CLASSIF.map(c=>`<option value="${escapeHtml(c[0])}">${escapeHtml(c[0])} (${Math.round(c[1]*100)}%)</option>`).join('');
+}
+function valorComNovo(selId,novoId){
+  const nv=document.getElementById(novoId).value.trim();
+  return nv || document.getElementById(selId).value;
+}
+function setSelectOuNovo(selId,novoId,val,lista){
+  const sel=document.getElementById(selId);
+  if(val && lista.includes(val)){ sel.value=val; document.getElementById(novoId).value=''; }
+  else { sel.value=''; document.getElementById(novoId).value = val||''; }
+}
+function calcVivo(){
+  const area=parseFloat(document.getElementById('fArea').value)||0;
+  const classifNome=document.getElementById('fClassif').value;
+  const cl=CLASSIF.find(c=>c[0]===classifNome);
+  const pct=cl?cl[1]:null;
+  document.getElementById('cPct').innerHTML = (pct!=null? fmtP(pct):'—')+'<small>=VLOOKUP(Classificação)</small>';
+  const areaUtil = pct!=null? area*pct : 0;
+  document.getElementById('cAreaUtil').innerHTML = fmtN(areaUtil)+' ha<small>=Área Total × % Empastada</small>';
+  const qtd=parseFloat(document.getElementById('fQtdAnimais').value)||0;
+  const peso=parseFloat(document.getElementById('fPesoMedio').value)||0;
+  const ua=(qtd&&peso) ? (qtd*peso)/450 : 0;
+  document.getElementById('cUA').innerHTML = fmtN(ua)+' UA<small>=(Qtd. × Peso) ÷ 450</small>';
+  const lot = areaUtil>0 ? ua/areaUtil : null;
+  document.getElementById('cLotacao').innerHTML = (lot!=null?fmtN(lot):'—')+' UA/ha<small>=UA ÷ Área Útil</small>';
+  renderFormAplicacoes();
+}
+// ---- Aplicações de Produtos (lista dinâmica dentro do Cadastro) ----
+let formAplicacoes=[];
+function renderFormAplicacoes(){
+  const div=document.getElementById('listaAplicacoesForm'); if(!div) return;
+  const area=parseFloat(document.getElementById('fArea').value)||0;
+  if(!formAplicacoes.length){ div.innerHTML='<div class="dica" style="display:block">Nenhum produto adicionado a este pasto ainda.</div>'; return; }
+  div.innerHTML=formAplicacoes.map((a,i)=>{
+    const p=produtoPorId(a.produtoId);
+    const total=(a.quantidadeHa||0)*area;
+    return `<div class="talhao-item">
+      <select onchange="atualizarAplicacaoForm(${i},'produtoId',this.value)" style="min-width:170px">
+        <option value="">— escolha o produto —</option>
+        ${catalogoProdutos.map(pr=>`<option value="${escapeHtml(pr.id)}" ${a.produtoId===pr.id?'selected':''}>${escapeHtml(pr.nome)} (${escapeHtml(pr.unidade)})</option>`).join('')}
+      </select>
+      <input type="number" step="0.01" placeholder="quantidade/há" style="max-width:130px" value="${a.quantidadeHa??''}" oninput="atualizarAplicacaoForm(${i},'quantidadeHa',this.value)">
+      <span class="dica" style="min-width:150px">${p? ('total: '+fmtN(total)+' '+p.unidade.split('/')[0]) : '—'}</span>
+      <button class="btn perigo" onclick="removerAplicacaoForm(${i})">remover</button>
+    </div>`;
+  }).join('');
+}
+function adicionarAplicacaoForm(){ formAplicacoes.push({produtoId:'', quantidadeHa:null}); renderFormAplicacoes(); }
+function removerAplicacaoForm(i){ formAplicacoes.splice(i,1); renderFormAplicacoes(); }
+function atualizarAplicacaoForm(i,campo,valor){
+  formAplicacoes[i][campo] = campo==='quantidadeHa' ? (valor===''?null:parseFloat(valor)) : valor;
+  renderFormAplicacoes();
+}
+// ---- Catálogo de Produtos ----
+function renderCatalogoProdutos(){
+  const div=document.getElementById('listaProdutos'); if(!div) return;
+  if(!catalogoProdutos.length){ div.innerHTML='<div class="dica" style="display:block">Nenhum produto cadastrado.</div>'; return; }
+  div.innerHTML=catalogoProdutos.map(p=>`
+    <div class="talhao-item">
+      <div style="flex:1"><b style="color:var(--creme)">${escapeHtml(p.nome)}</b> <span class="dica">${escapeHtml(p.categoria)} · ${escapeHtml(p.unidade)}</span></div>
+      <button class="btn perigo" onclick="excluirProduto('${q(p.id)}')">excluir</button>
+    </div>`).join('');
+}
+function adicionarProduto(){
+  const nome=document.getElementById('pNome').value.trim();
+  const categoria=document.getElementById('pCategoria').value;
+  const unidade=document.getElementById('pUnidade').value;
+  if(!nome) return toast('Informe o nome do produto.', true);
+  catalogoProdutos.push({id:'p'+Date.now(), nome, categoria, unidade});
+  persistir(); renderCatalogoProdutos(); renderFormAplicacoes();
+  document.getElementById('pNome').value='';
+  toast('Produto adicionado ao catálogo.');
+}
+function excluirProduto(id){
+  if(produtoEmUso(id)) return toast('Esse produto está em uso em algum pasto — remova as aplicações dele antes de excluir.', true);
+  catalogoProdutos=catalogoProdutos.filter(p=>p.id!==id);
+  persistir(); renderCatalogoProdutos(); renderFormAplicacoes();
+  toast('Produto removido do catálogo.');
+}
+
+// ---- Cadastro de Módulos (entidade própria — lista, renomear em bloco, cadastrar antes de ter pasto) ----
+function renderModulosRegistrados(){
+  const div=document.getElementById('listaModulosRegistrados'); if(!div) return;
+  const cont=document.getElementById('contagemModulos');
+  if(cont) cont.textContent = modulosRegistrados.length ? '('+fmtI(modulosRegistrados.length)+')' : '';
+  if(!modulosRegistrados.length){ div.innerHTML='<div class="dica" style="display:block">Nenhum módulo cadastrado ainda.</div>'; return; }
+  const ordenados=[...modulosRegistrados].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
+  div.innerHTML=ordenados.map(m=>{
+    const rm=resumoModulo(m);
+    const info = rm.nPastos ? `${fmtI(rm.nPastos)} pasto(s) · ${fmtN(rm.areaTotal)} ha`+(rm.qtdAnimais?` · ${fmtI(rm.qtdAnimais)} animais`:'') : 'nenhum pasto ainda';
+    return `<div class="talhao-item">
+      <input type="text" value="${escapeHtml(m)}" onchange="renomearModulo('${q(m)}', this.value)" style="min-width:190px">
+      <span class="dica" style="min-width:260px">${escapeHtml(info)}</span>
+      <button class="btn perigo" onclick="excluirModulo('${q(m)}')">excluir</button>
+    </div>`;
+  }).join('');
+}
+function adicionarModulo(){
+  const nome=document.getElementById('mNome').value.trim();
+  if(!nome) return toast('Informe o nome do módulo.', true);
+  if(modulosRegistrados.some(m=>normalizarTxt(m)===normalizarTxt(nome))) return toast('Esse módulo já está cadastrado.', true);
+  modulosRegistrados.push(nome);
+  persistir(); renderModulosRegistrados(); atualizarDatalistModulos(); preencherSelects();
+  document.getElementById('mNome').value='';
+  toast('Módulo cadastrado.');
+}
+function excluirModulo(nome){
+  if(moduloEmUso(nome)) return toast('Esse módulo está em uso em algum pasto — mude o módulo desses pastos antes de excluir.', true);
+  modulosRegistrados=modulosRegistrados.filter(m=>m!==nome);
+  persistir(); renderModulosRegistrados(); atualizarDatalistModulos(); preencherSelects();
+  toast('Módulo removido do cadastro.');
+}
+function renomearModulo(nomeAntigo, nomeNovo){
+  nomeNovo=(nomeNovo||'').trim();
+  if(!nomeNovo || nomeNovo===nomeAntigo){ renderModulosRegistrados(); return; }
+  if(modulosRegistrados.some(m=>m!==nomeAntigo && normalizarTxt(m)===normalizarTxt(nomeNovo))) { toast('Já existe um módulo com esse nome.', true); renderModulosRegistrados(); return; }
+  let atualizados=0;
+  if(!ocultarBase){
+    baseRows.forEach(r=>{
+      const atual=edicoes[r.pasto]||r;
+      if(atual.modulo===nomeAntigo){
+        const clone=Object.assign({}, atual, {modulo:nomeNovo});
+        recalc(clone); edicoes[r.pasto]=clone; atualizados++;
+      }
+    });
+  }
+  extras.forEach(e=>{ if(e.modulo===nomeAntigo){ e.modulo=nomeNovo; recalc(e); atualizados++; } });
+  const idx=modulosRegistrados.indexOf(nomeAntigo);
+  if(idx>=0) modulosRegistrados[idx]=nomeNovo; else modulosRegistrados.push(nomeNovo);
+  mapaProp.talhoes.forEach(t=>{ if(t.nomeModulo===nomeAntigo) t.nomeModulo=nomeNovo; });
+  persistir(); atualizarTudo(); renderModulosRegistrados(); renderTalhoes(); atualizarTooltipsMapa(); atualizarDatalistModulos(); preencherSelects();
+  toast('Módulo renomeado — '+fmtI(atualizados)+' pasto(s) atualizado(s).');
+}
+
+// ---- Importar Pastos de Planilha (XLSX/XLS/CSV) com mapeamento de colunas ----
+const CAMPOS_IMPORTAVEIS=[
+  ['pasto','Pasto (identificação)'],
+  ['modulo','Módulo / Talhão'],
+  ['sistema','Sistema de Produção'],
+  ['areaTotal','Área Total (ha)'],
+  ['classificacao','Classificação do Pasto'],
+  ['capim','Espécie do Capim'],
+  ['aguada','Tipo de Aguada'],
+  ['cocho','Tipo de Cocho'],
+  ['qtCocho','Quant. Cocho (m)'],
+  ['qtdAnimais','Quantidade de Animais'],
+  ['pesoMedio','Peso Médio (kg)'],
+  ['manejo','Ação de Manejo'],
+  ['obs','OBS'],
+];
+const CAMPOS_NUM_IMPORT=new Set(['areaTotal','qtCocho','qtdAnimais','pesoMedio']);
+let importState=null;
+function bibliotecaImportDisponivel(){ return typeof XLSX!=='undefined'; }
+async function carregarArquivoImportar(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  if(!bibliotecaImportDisponivel()){
+    toast('Aguardando o carregamento da biblioteca de importação…');
+    const ok=await aguardarBibliotecasPromise(['xlsx'], 14);
+    if(!ok){
+      toast('Não foi possível carregar a biblioteca de importação mesmo com os provedores alternativos — verifique sua conexão ou tente numa rede diferente.', true);
+      ev.target.value=''; return;
+    }
+  }
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    const linhas=XLSX.utils.sheet_to_json(sheet,{header:1, raw:true, defval:null});
+    if(!linhas.length) throw new Error('planilha vazia');
+    const headers=linhas[0].map((h,i)=> (h!=null && String(h).trim()!=='') ? String(h).trim() : ('Coluna '+(i+1)));
+    const dados=linhas.slice(1).filter(r=>r.some(v=>v!=null && String(v).trim()!==''));
+    if(!dados.length) throw new Error('nenhuma linha de dados encontrada abaixo do cabeçalho');
+    importState={headers, dados, mapeamento:{}};
+    headers.forEach((h,i)=>{
+      const hn=normalizarTxt(h);
+      const campo=CAMPOS_IMPORTAVEIS.find(([k,rot])=>{
+        const rn=normalizarTxt(rot), kn=normalizarTxt(k);
+        return hn===rn || hn===kn || hn.includes(rn) || rn.includes(hn) || hn.includes(kn);
+      });
+      if(campo) importState.mapeamento[i]=campo[0];
+    });
+    renderMapeamentoImportar();
+    document.getElementById('infoImportarArquivo').textContent=file.name+' · '+dados.length+' linha(s) encontrada(s)';
+    document.getElementById('areaMapeamentoImportar').style.display='block';
+  }catch(e){
+    toast('Não consegui ler essa planilha: '+e.message, true);
+  }
+  ev.target.value='';
+}
+function atualizarMapeamentoImportar(idx, valor){ if(importState) importState.mapeamento[idx]=valor; }
+function renderMapeamentoImportar(){
+  const div=document.getElementById('listaMapeamento'); if(!div || !importState) return;
+  const optsCampos=CAMPOS_IMPORTAVEIS.map(([k,rot])=>`<option value="${k}">${escapeHtml(rot)}</option>`).join('');
+  const optsProdutos=catalogoProdutos.map(p=>`<option value="produto:${p.id}">Produto: ${escapeHtml(p.nome)} (qtd/há)</option>`).join('');
+  div.innerHTML=importState.headers.map((h,i)=>{
+    const amostraVal=importState.dados.map(r=>r[i]).find(v=>v!=null && String(v).trim()!=='');
+    const atual=importState.mapeamento[i]||'';
+    return `<div class="talhao-item">
+      <div style="min-width:220px;flex:1"><b style="color:var(--creme)">${escapeHtml(h)}</b><br><span class="dica">ex.: ${amostraVal!=null?escapeHtml(String(amostraVal)):'—'}</span></div>
+      <select onchange="atualizarMapeamentoImportar(${i}, this.value)" style="min-width:220px">
+        <option value="">— ignorar esta coluna —</option>
+        <optgroup label="Campos do Pasto">${optsCampos}</optgroup>
+        ${catalogoProdutos.length?('<optgroup label="Produtos (qtd/há)">'+optsProdutos+'</optgroup>'):''}
+      </select>
+    </div>`;
+  }).join('');
+  [...div.querySelectorAll('select')].forEach((sel,i)=>{ sel.value=importState.mapeamento[i]||''; });
+}
+function cancelarImportacao(){
+  importState=null;
+  document.getElementById('areaMapeamentoImportar').style.display='none';
+  document.getElementById('infoImportarArquivo').textContent='';
+}
+function normalizarNumeroImport(v){
+  if(v==null) return null;
+  if(typeof v==='number') return v;
+  let s=String(v).trim(); if(s==='') return null;
+  if(s.includes(',')) s=s.replace(/\./g,'').replace(',', '.');
+  const n=parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+function executarImportacao(){
+  if(!importState) return;
+  const mapa=importState.mapeamento;
+  const temPasto=Object.values(mapa).includes('pasto');
+  if(!temPasto) return toast('Mapeie ao menos a coluna "Pasto (identificação)" antes de importar.', true);
+  let novos=0, atualizados=0, ignorados=0;
+  importState.dados.forEach(linha=>{
+    const parcial={}; const aplicacoesImport=[];
+    Object.entries(mapa).forEach(([iStr,destino])=>{
+      if(!destino) return;
+      const valorBruto=linha[+iStr];
+      if(destino.indexOf('produto:')===0){
+        const produtoId=destino.slice(8);
+        const qtd=normalizarNumeroImport(valorBruto);
+        if(qtd!=null) aplicacoesImport.push({produtoId, quantidadeHa:qtd});
+      } else if(CAMPOS_NUM_IMPORT.has(destino)){
+        const n=normalizarNumeroImport(valorBruto);
+        if(n!=null) parcial[destino]=n;
+      } else if(valorBruto!=null && String(valorBruto).trim()!==''){
+        parcial[destino]=String(valorBruto).trim();
+      }
+    });
+    if(!parcial.pasto){ ignorados++; return; }
+    const nomePasto=String(parcial.pasto).trim();
+    const existente=todos().find(r=>normalizarTxt(r.pasto)===normalizarTxt(nomePasto));
+    if(existente){
+      const atualizado=Object.assign({}, existente, parcial);
+      atualizado.pasto=existente.pasto;
+      if(aplicacoesImport.length){
+        const porProduto={}; (existente.aplicacoes||[]).forEach(a=>porProduto[a.produtoId]=a);
+        aplicacoesImport.forEach(a=>porProduto[a.produtoId]=a);
+        atualizado.aplicacoes=Object.values(porProduto);
+      }
+      recalc(atualizado);
+      const ehBase=baseRows.some(r=>r.pasto===existente.pasto);
+      if(ehBase) edicoes[existente.pasto]=atualizado;
+      else { extras=extras.filter(e=>e.pasto!==existente.pasto); extras.push(atualizado); }
+      atualizados++;
+    } else {
+      if(!parcial.areaTotal){ ignorados++; return; }
+      const novo=Object.assign({
+        pasto:nomePasto, manejo:null, modulo:null, sistema:null, areaTotal:0, classificacao:null,
+        capim:null, aguada:null, cocho:null, qtCocho:null, obs:null, qtdAnimais:null, pesoMedio:null,
+        aplicacoes:[], origem:'novo'
+      }, parcial);
+      novo.aplicacoes=aplicacoesImport;
+      recalc(novo);
+      extras.push(novo);
+      novos++;
+    }
+  });
+  persistir(); atualizarTudo(); cancelarImportacao();
+  toast(`Importação concluída: ${novos} pasto(s) novo(s), ${atualizados} atualizado(s)`+(ignorados?(', '+ignorados+' ignorado(s) (sem nome ou sem área)'):'')+'.');
+}
+
+let editandoPasto=null;
+function lerForm(){
+  const g=id=>document.getElementById(id);
+  return {
+    pasto: g('fPasto').value.trim(),
+    manejo: valorComNovo('fManejo','fManejoNovo') || null,
+    modulo: valorComNovo('fModulo','fModuloNovo') || null,
+    sistema: valorComNovo('fSistema','fSistemaNovo') || null,
+    areaTotal: parseFloat(g('fArea').value)||0,
+    classificacao: g('fClassif').value || null,
+    capim: valorComNovo('fCapim','fCapimNovo') || null,
+    aguada: valorComNovo('fAguada','fAguadaNovo') || null,
+    cocho: valorComNovo('fCocho','fCochoNovo') || null,
+    qtCocho: g('fQtCocho').value!==''? parseFloat(g('fQtCocho').value): null,
+    obs: g('fObs').value.trim() || null,
+    qtdAnimais: g('fQtdAnimais').value!==''? parseFloat(g('fQtdAnimais').value): null,
+    pesoMedio: g('fPesoMedio').value!==''? parseFloat(g('fPesoMedio').value): null,
+    aplicacoes: formAplicacoes.filter(a=>a.produtoId && a.quantidadeHa!=null).map(a=>({produtoId:a.produtoId, quantidadeHa:a.quantidadeHa})),
+  };
+}
+function salvarPasto(){
+  const o=lerForm();
+  if(!o.pasto) return toast('Informe a identificação do Pasto.',true);
+  if(!o.areaTotal) return toast('Informe a Área Total (ha).',true);
+  recalc(o);
+  const t=todos();
+  if(editandoPasto){
+    const ehBase = baseRows.some(r=>r.pasto===editandoPasto);
+    if(editandoPasto!==o.pasto && t.some(r=>r.pasto===o.pasto)) return toast('Já existe um pasto com esse nome.',true);
+    o.origem='editado';
+    if(ehBase){ edicoes[editandoPasto]=o; }
+    else { extras=extras.filter(e=>e.pasto!==editandoPasto); extras.push(o); }
+  } else {
+    if(t.some(r=>r.pasto===o.pasto)) return toast('Já existe um pasto com esse nome.',true);
+    o.origem='novo'; extras.push(o);
+  }
+  persistir(); limparForm(); atualizarTudo();
+  toast(armazem.k==='disco' ? 'Pasto salvo. Dados persistidos neste navegador.' : 'Pasto salvo nesta sessão. Para guardar permanentemente, use Backup JSON (este visualizador bloqueia armazenamento local).');
+}
+function editar(p){
+  const r=todos().find(x=>x.pasto===p); if(!r)return;
+  editandoPasto=p;
+  const s=(id,v)=>document.getElementById(id).value=v??'';
+  s('fPasto', r.pasto);
+  setSelectOuNovo('fManejo','fManejoNovo', r.manejo, MANEJOS);
+  setSelectOuNovo('fModulo','fModuloNovo', r.modulo, modulosRegistrados);
+  setSelectOuNovo('fSistema','fSistemaNovo', r.sistema, SISTEMAS);
+  s('fArea', r.areaTotal);
+  s('fClassif', r.classificacao||'');
+  setSelectOuNovo('fCapim','fCapimNovo', r.capim, CAPINS);
+  setSelectOuNovo('fAguada','fAguadaNovo', r.aguada, AGUADAS);
+  setSelectOuNovo('fCocho','fCochoNovo', r.cocho, COCHOS);
+  s('fQtCocho', r.qtCocho);
+  s('fObs', r.obs);
+  s('fQtdAnimais', r.qtdAnimais);
+  s('fPesoMedio', r.pesoMedio);
+  formAplicacoes = (r.aplicacoes||[]).map(a=>({produtoId:a.produtoId, quantidadeHa:a.quantidadeHa}));
+  document.getElementById('tituloForm').textContent='Editando '+r.pasto;
+  document.getElementById('btnSalvar').textContent='Salvar Alterações';
+  document.getElementById('btnExcluir').style.display='inline-block';
+  calcVivo();
+  const btnCad=document.querySelector('.nav-dropdown-menu button[data-subaba="sub-pastos"]');
+  if(btnCad) btnCad.click();
+}
+function excluirPasto(){
+  if(!editandoPasto)return;
+  if(edicoes[editandoPasto]){delete edicoes[editandoPasto];toast('Edição descartada — registro original da planilha restaurado.')}
+  else {extras=extras.filter(e=>e.pasto!==editandoPasto);toast('Registro excluído.')}
+  persistir(); limparForm(); atualizarTudo();
+}
+function limparForm(){
+  editandoPasto=null;
+  document.querySelectorAll('#cadastro input[type=text],#cadastro input[type=number]').forEach(i=>i.value='');
+  document.querySelectorAll('#cadastro select').forEach(s=>s.value='');
+  formAplicacoes=[];
+  document.getElementById('tituloForm').textContent='Novo Pasto';
+  document.getElementById('btnSalvar').textContent='Salvar Pasto';
+  document.getElementById('btnExcluir').style.display='none';
+  calcVivo();
+}
+['fArea','fQtdAnimais','fPesoMedio'].forEach(id=>document.getElementById(id).addEventListener('input',calcVivo));
+document.getElementById('fClassif').addEventListener('change',calcVivo);
+
+// ---- Cliente & Fazenda ----
+function carregarCliente(){
+  const c=cliente;
+  document.getElementById('clNome').value=c.nome||'';
+  document.getElementById('clFazenda').value=c.fazenda||'';
+  document.getElementById('clConsultor').value=c.consultor||'';
+  document.getElementById('clTelefone').value=c.telefone||'';
+  document.getElementById('clEmail').value=c.email||'';
+  document.getElementById('clMunicipio').value=c.municipio||'';
+  document.getElementById('clMapa').value=c.mapa||'';
+  atualizarCabecalhoFazenda();
+  document.getElementById('respTec').value=c.consultor||'';
+  document.getElementById('respCliente').value=c.nome||'';
+  renderAnexos(); renderObservacoes(); atualizarBotaoMapa();
+}
+function atualizarCabecalhoFazenda(){
+  document.getElementById('subFazenda').textContent = (cliente.fazenda?('Fazenda '+cliente.fazenda+' · Manutenção de Pasto'):'Cadastre a fazenda na aba Cliente & Fazenda');
+}
+function salvarCliente(){
+  cliente.nome=document.getElementById('clNome').value.trim();
+  cliente.fazenda=document.getElementById('clFazenda').value.trim();
+  cliente.consultor=document.getElementById('clConsultor').value.trim();
+  cliente.telefone=document.getElementById('clTelefone').value.trim();
+  cliente.email=document.getElementById('clEmail').value.trim();
+  cliente.municipio=document.getElementById('clMunicipio').value.trim();
+  cliente.mapa=document.getElementById('clMapa').value.trim();
+  persistir();
+  atualizarCabecalhoFazenda();
+  document.getElementById('respTec').value=cliente.consultor||'';
+  document.getElementById('respCliente').value=cliente.nome||'';
+  atualizarBotaoMapa();
+  atualizarCapaRelatorio(filtrar());
+  toast('Dados do cliente salvos.');
+}
+function atualizarBotaoMapa(){
+  document.getElementById('btnAbrirMapa').disabled = !cliente.mapa;
+}
+function abrirMapa(){
+  if(cliente.mapa) window.open(cliente.mapa,'_blank','noopener');
+}
+
+// ---- Anexos ----
+let uploadSeq=0;
+function anexarArquivos(ev){
+  const files=[...ev.target.files]; if(!files.length) return;
+  let restantes=files.length;
+  files.forEach(f=>{
+    const r=new FileReader();
+    r.onload=()=>{
+      cliente.anexos.push({id:'a'+Date.now()+'_'+(uploadSeq++), nome:f.name, tamanho:f.size, dataUpload:new Date().toISOString(), conteudo:r.result});
+      restantes--;
+      if(restantes===0){ persistir(); renderAnexos(); toast('Anexo(s) salvo(s).'); }
+    };
+    r.onerror=()=>{ restantes--; toast('Falha ao ler o arquivo '+f.name,true); if(restantes===0){persistir();renderAnexos();} };
+    r.readAsDataURL(f);
+  });
+  ev.target.value='';
+}
+function salvarComoAnexo(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    cliente.anexos.push({id:'a'+Date.now()+'_'+(uploadSeq++), nome:file.name, tamanho:file.size, dataUpload:new Date().toISOString(), conteudo:r.result});
+    persistir(); renderAnexos();
+  };
+  r.readAsDataURL(file);
+}
+function excluirAnexo(id){
+  cliente.anexos=cliente.anexos.filter(a=>a.id!==id);
+  persistir(); renderAnexos(); toast('Anexo removido.');
+}
+function renderAnexos(){
+  const div=document.getElementById('listaAnexos');
+  if(!cliente.anexos.length){ div.innerHTML='<div style="color:var(--mudo);font-size:12.5px">Nenhum arquivo anexado ainda.</div>'; }
+  else {
+    div.innerHTML = cliente.anexos.map(a=>`
+      <div class="anexo">
+        <div class="nome">${escapeHtml(a.nome)}</div>
+        <div class="meta">${extensao(a.nome)} · ${fmtBytes(a.tamanho)} · ${fmtD(new Date(a.dataUpload))}</div>
+        <div class="acoes">
+          <a href="${a.conteudo}" download="${escapeHtml(a.nome)}">baixar</a>
+          <span class="excluir" onclick="excluirAnexo('${q(a.id)}')">excluir</span>
+        </div>
+      </div>`).join('');
+  }
+  atualizarBarraArmazenamento();
+}
+function atualizarBarraArmazenamento(){
+  const tamanho = JSON.stringify({extras,edicoes,cliente,mapaProp,catalogoProdutos}).length;
+  const limiteAviso = 4*1024*1024;
+  const limiteAlvo = 5*1024*1024;
+  const pct = Math.min(100, tamanho/limiteAlvo*100);
+  document.getElementById('barraArmazFill').style.width=pct.toFixed(1)+'%';
+  document.getElementById('barraArmazFill').style.background = tamanho>limiteAviso ? 'var(--ruim)' : '';
+  document.getElementById('infoArmazenamento').textContent = fmtBytes(tamanho)+' usados neste navegador'+(tamanho>limiteAviso?' — próximo do limite, exporte um backup':'');
+}
+
+// ---- Observações do consultor ----
+function adicionarObservacao(){
+  const t=document.getElementById('notaTexto').value.trim();
+  if(!t) return toast('Escreva uma observação antes de adicionar.',true);
+  cliente.observacoes.unshift({id:'o'+Date.now(), data:new Date().toISOString(), texto:t});
+  document.getElementById('notaTexto').value='';
+  persistir(); renderObservacoes(); toast('Observação adicionada.');
+}
+function excluirObservacao(id){
+  cliente.observacoes=cliente.observacoes.filter(o=>o.id!==id);
+  persistir(); renderObservacoes(); toast('Observação removida.');
+}
+function renderObservacoes(){
+  const div=document.getElementById('listaObservacoes');
+  if(!cliente.observacoes.length){ div.innerHTML='<div style="color:var(--mudo);font-size:12.5px">Nenhuma observação registrada ainda.</div>'; return; }
+  div.innerHTML = cliente.observacoes.map(o=>{
+    const dt=new Date(o.data);
+    return `<div class="nota">
+      <div class="cab"><span>${fmtD(dt)} às ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span><span class="del" onclick="excluirObservacao('${q(o.id)}')">excluir</span></div>
+      <div class="txt">${escapeHtml(o.texto)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---- Mapa da Propriedade (KMZ/KML) ----
+let leafletMap=null, geoLayer=null, mapaInicializado=false, talhaoSelecionado=null;
+// Qual arquivo está DESENHADO no mapa neste momento. Enquanto for o mesmo, voltar pra
+// aba não recria a camada nem mexe no zoom — só atualiza cor e rótulo.
+let assinaturaMapaDesenhado=null;
+let observadorTamanhoMapa=null, timerVista=null;
+const MSG_FALHA_MAPA='Não foi possível carregar o componente de mapa mesmo após tentar os provedores alternativos — a rede deste computador parece estar bloqueando os endereços externos (jsdelivr.net, cdnjs.cloudflare.com, unpkg.com). Tente numa rede diferente (ex.: 4G do celular) ou recarregue a página. Enquanto isso, o resto da ferramenta funciona normalmente.';
+function bibliotecasMapaDisponiveis(){
+  return typeof L!=='undefined' && typeof JSZip!=='undefined' && typeof toGeoJSON!=='undefined';
+}
+// Espera as bibliotecas terminarem de carregar (inclusive pelos CDNs alternativos)
+// antes de desistir — evita declarar "falhou" enquanto o fallback ainda está tentando.
+function aguardarBibliotecas(nomes, tentativasRestantes, cb){
+  if(nomes.every(n=>window.LIBS_STATUS[n]==='ok' || (n==='leaflet'&&typeof L!=='undefined') || (n==='jszip'&&typeof JSZip!=='undefined') || (n==='togeojson'&&typeof toGeoJSON!=='undefined') || (n==='xlsx'&&typeof XLSX!=='undefined'))){
+    cb(true); return;
+  }
+  if(nomes.every(n=>window.LIBS_STATUS[n]==='falhou') || tentativasRestantes<=0){ cb(false); return; }
+  setTimeout(()=>aguardarBibliotecas(nomes, tentativasRestantes-1, cb), 350);
+}
+function mostrarAvisoMapa(msg){
+  const el=document.getElementById('mapaAviso'); if(!el) return;
+  if(msg){ el.textContent=msg; el.style.display='block'; } else { el.style.display='none'; }
+}
+// ---- Tamanho e enquadramento do mapa ----------------------------------------
+// O Leaflet desenha em cima de um tamanho que ele MEDIU uma vez. Se a medida for
+// feita enquanto a aba ainda está escondida (display:none), ou se o container mudar
+// de altura depois (janela redimensionada, teclado do celular abrindo/fechando,
+// fonte web terminando de carregar), o mapa continua desenhando no tamanho velho —
+// é daí que vem a sensação de que "o mapa foi diminuindo". Por isso a medida é
+// refeita em três momentos: agora, no próximo quadro do navegador e, por segurança,
+// 120 ms depois. `pan:false` impede que a correção arraste a vista de lugar.
+function quadro(cb){
+  if(typeof requestAnimationFrame==='function') return requestAnimationFrame(cb);
+  return setTimeout(cb,16);
+}
+function ajustarTamanhoMapa(){
+  if(!leafletMap) return;
+  const medir=()=>{ if(!leafletMap) return; try{ leafletMap.invalidateSize({pan:false}); }catch(e){} };
+  medir();
+  quadro(()=>quadro(medir));
+  setTimeout(medir,120);
+}
+let vigiaTamanhoLigada=false;
+function vigiarTamanhoMapa(el){
+  if(vigiaTamanhoLigada || !el) return;
+  vigiaTamanhoLigada=true;
+  if(typeof ResizeObserver!=='undefined'){
+    try{
+      observadorTamanhoMapa=new ResizeObserver(()=>{ if(leafletMap){ try{ leafletMap.invalidateSize({pan:false}); }catch(e){} } });
+      observadorTamanhoMapa.observe(el);
+    }catch(e){ observadorTamanhoMapa=null; }
+  }
+  // Navegadores sem ResizeObserver (ou embutidos em apps) ainda avisam do resize da janela.
+  window.addEventListener('resize', ()=>{ if(abaMapaVisivel()) ajustarTamanhoMapa(); });
+  window.addEventListener('orientationchange', ()=>{ if(abaMapaVisivel()) ajustarTamanhoMapa(); });
+}
+function abaMapaVisivel(){
+  const s=document.getElementById('mapa');
+  return !!(s && s.classList.contains('ativa'));
+}
+function assinaturaMapa(){
+  return (mapaProp.arquivoNome||'')+'§'+(mapaProp.dataUpload||'')+'§'+(mapaProp.kmlTexto||'').length;
+}
+function gravarVistaMapa(){
+  if(!leafletMap || !leafletMap.getCenter || !leafletMap.getZoom) return;
+  try{
+    const c=leafletMap.getCenter(), z=leafletMap.getZoom();
+    if(!c || c.lat==null || z==null) return;
+    mapaProp.vista={lat:c.lat, lng:c.lng, zoom:z};
+  }catch(e){}
+}
+function agendarGravacaoVista(){
+  gravarVistaMapa();
+  clearTimeout(timerVista);
+  timerVista=setTimeout(()=>{ try{ persistir(); }catch(e){} }, 600);
+}
+function restaurarVistaMapa(){
+  const v=mapaProp.vista;
+  if(!leafletMap || !v || v.lat==null || v.zoom==null) return false;
+  try{ leafletMap.setView([v.lat,v.lng], v.zoom, {animate:false}); return true; }catch(e){ return false; }
+}
+function enquadrarTudo(){
+  if(!leafletMap || !geoLayer || !geoLayer.getBounds) return false;
+  try{
+    const b=geoLayer.getBounds();
+    if(b && b.isValid && b.isValid()){ leafletMap.fitBounds(b,{padding:[24,24]}); gravarVistaMapa(); return true; }
+  }catch(e){}
+  return false;
+}
+// Botão "Enquadrar tudo": o único lugar onde o usuário pede, de propósito, pra voltar
+// a ver a fazenda inteira.
+function enquadrarMapaTudo(){
+  if(!leafletMap){ toast('O mapa ainda não está pronto.', true); return; }
+  ajustarTamanhoMapa();
+  if(!enquadrarTudo()) toast('Carregue um mapa (KMZ/KML) primeiro.', true);
+}
+function inicializarMapaSeNecessario(){
+  if(mapaInicializado) return;
+  mapaInicializado=true;
+  const el=document.getElementById('mapaLeaflet');
+  if(!el || typeof L==='undefined'){
+    mostrarAvisoMapa(MSG_FALHA_MAPA);
+    return;
+  }
+  try{
+    leafletMap=L.map(el,{scrollWheelZoom:true}).setView([-15.79,-47.93],4);
+    // Guarda o enquadramento que o usuário deixou (e reavalia o tamanho real do
+    // container sempre que ele mudar — container medido errado é o que faz o
+    // desenho aparecer encolhido dentro da moldura).
+    if(leafletMap.on){
+      leafletMap.on('moveend', agendarGravacaoVista);
+      leafletMap.on('zoomend', agendarGravacaoVista);
+    }
+    vigiarTamanhoMapa(el);
+    const satelite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'});
+    const ruas=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'});
+    satelite.addTo(leafletMap);
+    L.control.layers({'Satélite':satelite,'Mapa':ruas}).addTo(leafletMap);
+    // Se as imagens de satélite não carregarem nesta rede (bloqueio comum em algumas redes
+    // corporativas/públicas), troca sozinho pro provedor alternativo depois de várias falhas.
+    let falhasTile=0, trocouProvedor=false;
+    satelite.on('tileerror',()=>{
+      falhasTile++;
+      if(falhasTile>=6 && !trocouProvedor && leafletMap.hasLayer(satelite)){
+        trocouProvedor=true;
+        leafletMap.removeLayer(satelite); ruas.addTo(leafletMap);
+        toast('As imagens de satélite não carregaram nesta rede — usando o mapa padrão (OpenStreetMap).', true);
+      }
+    });
+  }catch(e){ mostrarAvisoMapa('Erro ao iniciar o mapa: '+e.message); leafletMap=null; }
+}
+// Volta pra aba Mapa: remede o container e redesenha SÓ se o arquivo mudou —
+// nunca reenquadra por conta própria.
+function sincronizarMapaVisivel(){
+  if(!leafletMap) return;
+  ajustarTamanhoMapa();
+  if(mapaProp.kmlTexto) renderizarMapa();
+}
+function ativarAbaMapa(){
+  if(mapaInicializado){
+    sincronizarMapaVisivel();
+    return;
+  }
+  if(bibliotecasMapaDisponiveis()){
+    inicializarMapaSeNecessario();
+    sincronizarMapaVisivel();
+    return;
+  }
+  mostrarAvisoMapa('Carregando o componente de mapa… isso pode levar alguns segundos na primeira vez (ou um pouco mais se o provedor principal estiver indisponível e for preciso usar um alternativo).');
+  aguardarBibliotecas(['leaflet','jszip','togeojson'], 14, (ok)=>{
+    if(ok){
+      inicializarMapaSeNecessario();
+      if(leafletMap) mostrarAvisoMapa(null);
+      sincronizarMapaVisivel();
+    } else {
+      mapaInicializado=true;
+      mostrarAvisoMapa(MSG_FALHA_MAPA);
+    }
+  });
+}
+function estiloTalhao(destacado, nomeModulo){
+  const rm = nomeModulo ? resumoModulo(nomeModulo) : null;
+  const corBase = (rm && rm.classifPredominante) ? corClassificacao(rm.classifPredominante) : '#9a9478';
+  return destacado
+    ? {color:'#F5EAC8',weight:4,fillColor:corBase,fillOpacity:.55}
+    : {color:corBase,weight:3,fillColor:corBase,fillOpacity:.28};
+}
+function nomeModuloDoTalhao(idx){
+  const t=mapaProp.talhoes[idx]; return t ? (t.nomeModulo||t.nomeOriginal) : null;
+}
+// Mantém qualquer geometria que representa um talhão de verdade — inclusive linhas
+// (muita cerca elétrica é registrada como um traçado de linha, não um polígono fechado).
+// Só descarta pelo NOME quando é claramente uma régua de medir distância do Google Earth
+// (ex.: "Medida da linha"), não pelo tipo de geometria.
+function featuresValidasTalhao(gj){
+  return gj.features.filter(f=>{
+    if(!f.geometry) return false;
+    const tipo=f.geometry.type;
+    if(!['Polygon','MultiPolygon','Point','LineString','MultiLineString'].includes(tipo)) return false;
+    const nome=(f.properties && (f.properties.name||f.properties.Name)) || '';
+    const nomeNorm=normalizarTxt(nome);
+    const pareceMedida = /^medid|^regua|^distanc|^escala/.test(nomeNorm);
+    return !pareceMedida;
+  });
+}
+// Cerca elétrica é normalmente caminhada com GPS até fechar o piquete — o traçado (LineString)
+// começa e termina quase no mesmo ponto. Quando é o caso, tratamos como área (Polygon) pra
+// pintar o piquete preenchido, não só o contorno — senão fica "só o perímetro" no mapa.
+function distanciaCoord(a,b){ const dx=a[0]-b[0], dy=a[1]-b[1]; return Math.sqrt(dx*dx+dy*dy); }
+function normalizarGeometriaTalhao(feature){
+  const geom=feature.geometry;
+  if(geom && geom.type==='LineString' && geom.coordinates.length>=3){
+    const primeiro=geom.coordinates[0], ultimo=geom.coordinates[geom.coordinates.length-1];
+    if(distanciaCoord(primeiro,ultimo) < 0.0006){ // ~60m de tolerância em graus — cerca "fechada"
+      return Object.assign({}, feature, {geometry:{type:'Polygon', coordinates:[geom.coordinates]}});
+    }
+  }
+  return feature;
+}
+// Área geodésica aproximada (fórmula esférica, igual a que ferramentas de GPS/Google Earth usam)
+// a partir de um anel de coordenadas [lon,lat] do GeoJSON. Retorna hectares.
+function areaGeodesicaHa(coordenadas){
+  if(!coordenadas || coordenadas.length<3) return null;
+  const R=6378137; // raio médio da Terra (WGS84), em metros
+  let area=0;
+  const n=coordenadas.length;
+  for(let i=0;i<n;i++){
+    const [lon1,lat1]=coordenadas[i];
+    const [lon2,lat2]=coordenadas[(i+1)%n];
+    area += (lon2-lon1)*Math.PI/180 * (2 + Math.sin(lat1*Math.PI/180) + Math.sin(lat2*Math.PI/180));
+  }
+  area = area*R*R/2;
+  return Math.abs(area)/10000; // m² -> hectares
+}
+// Tenta calcular a área de um talhão: fecha a cerca (se for o caso) e mede o anel externo.
+function areaTalhaoHa(feature){
+  const norm=normalizarGeometriaTalhao(feature);
+  if(!norm.geometry) return null;
+  if(norm.geometry.type==='Polygon') return areaGeodesicaHa(norm.geometry.coordinates[0]);
+  if(norm.geometry.type==='MultiPolygon') return areaGeodesicaHa(norm.geometry.coordinates[0][0]);
+  return null;
+}
+// ---- Rótulo fixo desenhado sobre o talhão -----------------------------------
+// Em tamanho de legenda, com as duas informações que a Renata olha primeiro no
+// mapa: quantos animais estão naquele lote e quanto do pasto é aproveitável
+// (área útil ÷ área total, a mesma conta da coluna "% Empastada").
+function rotulosLigados(){ return mapaProp.mostrarRotulos!==false; }
+function rotuloTalhao(idx){
+  const nome=nomeModuloDoTalhao(idx) || ('Talhão '+(idx+1));
+  const rm=resumoModulo(nome);
+  const animais = rm.qtdAnimais ? (fmtI(rm.qtdAnimais)+' animais') : 'sem animais';
+  // Sem classificação não existe área útil — mostrar "0,00%" aqui faria o pasto
+  // parecer perdido quando o que falta é classificar.
+  const aprov = (rm.pctAproveitamento!=null && rm.pctAreaClassificada>0)
+    ? (fmtN(rm.pctAproveitamento)+'% aproveit.')
+    : 'a classificar';
+  return '<span class="rt-nome">'+escapeHtml(nome)+'</span>'+
+         '<span class="rt-dado">'+escapeHtml(animais)+' · '+escapeHtml(aprov)+'</span>';
+}
+// Caixinha de detalhe no canto do mapa — substitui o antigo tooltip de passar o
+// mouse, que agora dá lugar ao rótulo fixo (o Leaflet só aceita um por camada).
+const DICA_DETALHE='<span class="vazio">Passe o mouse (ou toque) num talhão para ver os números dele aqui.</span>';
+function mostrarDetalheTalhao(idx){
+  const el=document.getElementById('mapaDetalhe'); if(!el) return;
+  el.innerHTML=detalheTalhao(idx);
+  el.classList.add('com-dado');
+}
+function limparDetalheTalhao(){
+  const el=document.getElementById('mapaDetalhe'); if(!el) return;
+  el.innerHTML=DICA_DETALHE;
+  el.classList.remove('com-dado');
+}
+// Deixa o checkbox de rótulos coerente com o que está salvo (backup, versão restaurada…).
+function sincronizarControlesMapa(){
+  const chk=document.getElementById('chkRotulosMapa');
+  if(chk) chk.checked=rotulosLigados();
+}
+function detalheTalhao(idx){
+  const nome=nomeModuloDoTalhao(idx) || ('Talhão '+(idx+1));
+  const t=mapaProp.talhoes[idx];
+  const rm=resumoModulo(nome);
+  let html='<b>'+escapeHtml(nome)+'</b><br>'+fmtI(rm.nPastos)+' pasto(s) · '+fmtN(rm.areaTotal)+' ha total · '+fmtN(rm.areaUtil)+' ha útil';
+  if(rm.pctAproveitamento!=null && rm.pctAreaClassificada>0) html+='<br>Aproveitamento do pasto: <b>'+fmtN(rm.pctAproveitamento)+'%</b> (área útil ÷ área total)';
+  if(t && t.areaHa!=null) html+='<br>Área medida no mapa: '+fmtN(t.areaHa)+' ha';
+  if(rm.classifPredominante){
+    html+='<br>Classificação predominante: <span style="color:'+corClassificacao(rm.classifPredominante)+'">'+escapeHtml(rm.classifPredominante)+'</span> ('+fmtN(rm.pctAreaClassificada)+'% da área classificada)';
+  } else {
+    html+='<br><span style="opacity:.7">ainda sem classificação</span>';
+  }
+  if(rm.qtdAnimais){
+    html+='<br>'+fmtI(rm.qtdAnimais)+' animais · '+fmtN(rm.pesoMedio)+' kg méd.'+
+      '<br>'+fmtN(rm.ua)+' UA · '+(rm.lotacao!=null?fmtN(rm.lotacao)+' UA/ha':'—');
+  } else {
+    html+='<br><span style="opacity:.7">sem animais lançados</span>';
+  }
+  html+='<br><span style="opacity:.7">clique no talhão para abrir no Cadastro</span>';
+  return html;
+}
+// Clicar no talhão do mapa já leva pro Cadastro: edita o pasto existente que usa esse módulo
+// (se houver) ou monta um rascunho novo com Módulo e Área já preenchidos a partir do mapa.
+function abrirCadastroDoTalhao(idx){
+  const t=mapaProp.talhoes[idx]; if(!t) return;
+  const nomeModulo=t.nomeModulo||t.nomeOriginal;
+  const existente=todos().find(r=>r.modulo && normalizarTxt(r.modulo)===normalizarTxt(nomeModulo));
+  if(existente){
+    editar(existente.pasto);
+    toast('Abrindo o pasto "'+existente.pasto+'" (módulo "'+nomeModulo+'").');
+    return;
+  }
+  limparForm();
+  const btnCad=document.querySelector('.nav-dropdown-menu button[data-subaba="sub-pastos"]');
+  if(btnCad) btnCad.click();
+  if(modulosRegistrados.some(m=>normalizarTxt(m)===normalizarTxt(nomeModulo))){
+    document.getElementById('fModulo').value=nomeModulo;
+  } else {
+    document.getElementById('fModuloNovo').value=nomeModulo;
+  }
+  if(t.areaHa!=null){ document.getElementById('fArea').value=t.areaHa.toFixed(2); }
+  calcVivo();
+  toast('Novo pasto pronto pra preencher — módulo "'+nomeModulo+'"'+(t.areaHa!=null?' e '+fmtN(t.areaHa)+' ha já calculados do mapa':'')+'.');
+}
+// Redesenha os talhões.
+//
+// Por padrão PRESERVA o enquadramento atual. Antes, toda volta pra aba Mapa (e todo
+// salvamento de pasto) recriava a camada e chamava fitBounds de novo: quem estava
+// marcando piquete por piquete via o mapa "encolher" — voltava pro zoom da fazenda
+// inteira a cada marcação, e quando a medida do container ainda estava desatualizada
+// o reenquadramento saía menor do que o anterior, acumulando a cada ida e volta.
+// Agora só reenquadra quando não há vista guardada ou quando o usuário pede
+// (`{enquadrar:true}`, do botão "Enquadrar tudo" e do upload de um arquivo novo).
+function renderizarMapa(opcoes){
+  opcoes=opcoes||{};
+  if(!leafletMap || !mapaProp.kmlTexto) return;
+  const assinatura=assinaturaMapa();
+  // Mesmo arquivo já desenhado: só atualiza cor e rótulo, sem recriar nada nem tocar no zoom.
+  if(!opcoes.enquadrar && geoLayer && assinatura===assinaturaMapaDesenhado){
+    atualizarTooltipsMapa();
+    return;
+  }
+  try{
+    if(geoLayer){ leafletMap.removeLayer(geoLayer); geoLayer=null; }
+    const xml=new DOMParser().parseFromString(mapaProp.kmlTexto,'text/xml');
+    if(xml.querySelector('parsererror')) throw new Error('arquivo KML inválido');
+    const gjBruto=toGeoJSON.kml(xml);
+    const validas=featuresValidasTalhao(gjBruto);
+    const paraRenderizar=validas.map((f,i)=>{
+      const norm=normalizarGeometriaTalhao(f);
+      norm._idxTalhao=i;
+      return norm;
+    });
+    const gj={type:'FeatureCollection', features:paraRenderizar};
+    geoLayer=L.geoJSON(gj,{
+      style: (feature)=>estiloTalhao(false, nomeModuloDoTalhao(feature._idxTalhao)),
+      pointToLayer:(f,latlng)=>L.circleMarker(latlng, Object.assign({radius:6}, estiloTalhao(false, nomeModuloDoTalhao(f._idxTalhao)))),
+      onEachFeature:(feature,layer)=>{
+        const idx=feature._idxTalhao;
+        layer._talhaoIdx=idx;
+        layer.on('click',()=>abrirCadastroDoTalhao(idx));
+        layer.on('mouseover',()=>mostrarDetalheTalhao(idx));
+      }
+    }).addTo(leafletMap);
+    assinaturaMapaDesenhado=assinatura;
+    aplicarRotulos();
+    if(opcoes.enquadrar || !restaurarVistaMapa()) enquadrarTudo();
+    mostrarAvisoMapa(null);
+  }catch(e){ mostrarAvisoMapa('Erro ao desenhar o mapa: '+e.message); }
+}
+// Liga/desliga os rótulos fixos e mantém o texto deles em dia. O rótulo é um tooltip
+// permanente ancorado no centro do talhão — por isso o detalhe completo foi pro
+// quadro do canto (o Leaflet só permite um tooltip por camada).
+function aplicarRotulos(){
+  if(!geoLayer) return;
+  const ligados=rotulosLigados();
+  geoLayer.eachLayer(layer=>{
+    const idx=layer._talhaoIdx; if(idx==null) return;
+    if(ligados){
+      const texto=rotuloTalhao(idx);
+      const jaTem = layer.getTooltip ? layer.getTooltip() : null;
+      if(jaTem && layer.setTooltipContent) layer.setTooltipContent(texto);
+      else if(layer.bindTooltip) layer.bindTooltip(texto,{permanent:true, direction:'center', className:'rotulo-talhao', opacity:1});
+    } else if(layer.unbindTooltip){
+      layer.unbindTooltip();
+    }
+  });
+}
+function alternarRotulosMapa(ligado){
+  mapaProp.mostrarRotulos = !!ligado;
+  persistir();
+  aplicarRotulos();
+  toast(ligado ? 'Rótulos ligados — animais e aproveitamento aparecem sobre cada talhão.' : 'Rótulos desligados.');
+}
+function atualizarTooltipsMapa(){
+  if(!geoLayer) return;
+  aplicarRotulos();
+  geoLayer.eachLayer(layer=>{
+    if(layer._talhaoIdx!=null && layer.setStyle && talhaoSelecionado!==layer._talhaoIdx) layer.setStyle(estiloTalhao(false, nomeModuloDoTalhao(layer._talhaoIdx)));
+  });
+}
+function selecionarTalhao(idx){
+  talhaoSelecionado=idx;
+  if(geoLayer){
+    geoLayer.eachLayer(layer=>{
+      const destacado = layer._talhaoIdx===idx;
+      if(layer.setStyle) layer.setStyle(estiloTalhao(destacado, nomeModuloDoTalhao(layer._talhaoIdx)));
+      if(destacado){
+        if(layer.getBounds){ try{ leafletMap.fitBounds(layer.getBounds(),{padding:[60,60],maxZoom:16}); }catch(e){} }
+        else if(layer.getLatLng){ leafletMap.setView(layer.getLatLng(), Math.max(leafletMap.getZoom(),15)); }
+        if(layer.openTooltip) layer.openTooltip();
+        mostrarDetalheTalhao(idx);
+        gravarVistaMapa();
+      }
+    });
+  }
+  renderTalhoes();
+  const row=document.querySelector('.talhao-item[data-idx="'+idx+'"]');
+  if(row && typeof row.scrollIntoView==='function'){ try{ row.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(e){ try{ row.scrollIntoView(); }catch(e2){} } }
+}
+function renderTalhoes(){
+  const div=document.getElementById('listaTalhoes');
+  const cont=document.getElementById('contagemTalhoes');
+  if(cont) cont.textContent = mapaProp.talhoes.length ? (mapaProp.talhoes.length+' talhões') : '';
+  if(!div) return;
+  if(!mapaProp.talhoes.length){
+    div.innerHTML='<div style="color:var(--mudo);font-size:12.5px">Nenhum mapa carregado ainda. Envie um arquivo KMZ ou KML acima.</div>';
+    return;
+  }
+  div.innerHTML=mapaProp.talhoes.map((t,idx)=>{
+    const rm=resumoModulo(t.nomeModulo);
+    const aprov = (rm.pctAproveitamento!=null && rm.pctAreaClassificada>0) ? (' · '+fmtN(rm.pctAproveitamento)+'% aproveit.') : '';
+    const infoAnimais = (rm.qtdAnimais ? (fmtI(rm.qtdAnimais)+' animais · '+fmtN(rm.pesoMedio)+' kg méd. · '+fmtN(rm.ua)+' UA') : (rm.nPastos? 'sem animais lançados' : 'módulo não usado em nenhum pasto ainda')) + aprov;
+    return `<div class="talhao-item${idx===talhaoSelecionado?' selecionado':''}" data-idx="${idx}">
+      <div class="talhao-original">${escapeHtml(t.nomeOriginal)}</div>
+      <input type="text" list="listaModulosDatalist" value="${escapeHtml(t.nomeModulo)}" onchange="renomearTalhao(${idx}, this.value)" placeholder="Nome do Módulo">
+      <span class="dica" style="min-width:260px">${escapeHtml(infoAnimais)}</span>
+      <button class="btn fantasma" onclick="selecionarTalhao(${idx})">Destacar no mapa</button>
+      <button class="btn fantasma" onclick="verModuloNaTabela('${q(t.nomeModulo)}')">Ver pastos na tabela →</button>
+    </div>`;
+  }).join('');
+}
+function renomearTalhao(idx, novoNome){
+  if(!mapaProp.talhoes[idx]) return;
+  mapaProp.talhoes[idx].nomeModulo = novoNome.trim() || mapaProp.talhoes[idx].nomeOriginal;
+  persistir();
+  atualizarDatalistModulos();
+  atualizarTooltipsMapa();
+  renderTalhoes();
+  toast('Nome do módulo atualizado.');
+}
+function atualizarInfoArquivoMapa(){
+  const el=document.getElementById('infoMapaArquivo'); if(!el) return;
+  el.textContent = mapaProp.arquivoNome ? (mapaProp.arquivoNome+' · carregado em '+fmtD(new Date(mapaProp.dataUpload))) : '';
+}
+function atualizarDatalistModulos(){
+  const set=new Set(modulosRegistrados);
+  todos().forEach(r=>{ if(r.modulo) set.add(r.modulo); });
+  mapaProp.talhoes.forEach(t=>{ if(t.nomeModulo) set.add(t.nomeModulo); });
+  const dl=document.getElementById('listaModulosDatalist');
+  if(dl) dl.innerHTML=[...set].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR')).map(m=>`<option value="${escapeHtml(m)}">`).join('');
+}
+function aguardarBibliotecasPromise(nomes, tentativas){
+  return new Promise(resolve=>aguardarBibliotecas(nomes, tentativas, resolve));
+}
+async function carregarArquivoMapa(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  if(!bibliotecasMapaDisponiveis()){
+    toast('Aguardando o carregamento das bibliotecas do mapa…');
+    const ok=await aguardarBibliotecasPromise(['leaflet','jszip','togeojson'], 14);
+    if(!ok){
+      toast('Não foi possível carregar as bibliotecas do mapa mesmo com os provedores alternativos — verifique sua conexão ou tente numa rede diferente.', true);
+      ev.target.value=''; return;
+    }
+  }
+  try{
+    let kmlText;
+    if(/\.kmz$/i.test(file.name)){
+      const buf=await file.arrayBuffer();
+      const zip=await JSZip.loadAsync(buf);
+      const entry=Object.values(zip.files).find(f=>/\.kml$/i.test(f.name) && !f.dir);
+      if(!entry) throw new Error('nenhum arquivo .kml encontrado dentro do KMZ');
+      kmlText=await entry.async('text');
+    } else if(/\.kml$/i.test(file.name)){
+      kmlText=await file.text();
+    } else {
+      throw new Error('envie um arquivo .kmz ou .kml');
+    }
+    const xml=new DOMParser().parseFromString(kmlText,'text/xml');
+    if(xml.querySelector('parsererror')) throw new Error('arquivo KML inválido');
+    const gj=toGeoJSON.kml(xml);
+    const validas=featuresValidasTalhao(gj);
+    if(!validas.length) throw new Error('nenhum talhão (polígono) encontrado no arquivo — só foram encontradas linhas/medidas, que não são pastos');
+    mapaProp.arquivoNome=file.name;
+    mapaProp.dataUpload=new Date().toISOString();
+    mapaProp.kmlTexto=kmlText;
+    mapaProp.talhoes=validas.map((f,i)=>{
+      const nome=(f.properties && (f.properties.name||f.properties.Name)) || ('Talhão '+(i+1));
+      return {id:'t'+i, nomeOriginal:nome, nomeModulo:nome, areaHa:areaTalhaoHa(f)};
+    });
+    talhaoSelecionado=null;
+    mapaProp.vista=null;          // arquivo novo: enquadra a fazenda inteira uma vez
+    assinaturaMapaDesenhado=null;
+    persistir();
+    atualizarInfoArquivoMapa();
+    renderTalhoes();
+    atualizarDatalistModulos();
+    inicializarMapaSeNecessario();
+    ajustarTamanhoMapa();
+    renderizarMapa({enquadrar:true});
+    salvarComoAnexo(file);
+    toast(mapaProp.talhoes.length+' talhão(ões) carregado(s) do mapa.');
+  }catch(e){
+    toast('Não consegui ler esse arquivo: '+e.message, true);
+  }
+  ev.target.value='';
+}
+function removerMapa(){
+  const rotulos=rotulosLigados();
+  mapaProp=mapaPropDefault();
+  mapaProp.mostrarRotulos=rotulos;   // preferência do usuário sobrevive ao arquivo
+  talhaoSelecionado=null;
+  assinaturaMapaDesenhado=null;
+  if(geoLayer && leafletMap){ leafletMap.removeLayer(geoLayer); geoLayer=null; }
+  limparDetalheTalhao();
+  persistir(); atualizarInfoArquivoMapa(); renderTalhoes(); mostrarAvisoMapa(null);
+  toast('Mapa removido.');
+}
+function normalizarTxt(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function encontrarTalhaoPorModulo(nomeModulo){
+  const alvo=normalizarTxt(nomeModulo); if(!alvo) return null;
+  const i=mapaProp.talhoes.findIndex(t=>normalizarTxt(t.nomeModulo)===alvo);
+  return i>=0 ? i : null;
+}
+function verModuloNoMapa(nomeModulo){
+  if(!nomeModulo) return toast('Este pasto não tem módulo definido.', true);
+  if(!mapaProp.talhoes.length) return toast('Nenhum mapa carregado ainda. Envie o KMZ na aba Mapa.', true);
+  const idx=encontrarTalhaoPorModulo(nomeModulo);
+  if(idx==null) return toast('Nenhum talhão do mapa está vinculado ao módulo "'+nomeModulo+'" ainda.', true);
+  const btn=document.querySelector('nav button[data-aba="mapa"]');
+  if(btn) btn.click();
+  setTimeout(()=>selecionarTalhao(idx), 80);
+}
+function verModuloNaTabela(nomeModulo){
+  const alvo=normalizarTxt(nomeModulo);
+  const real = todos().map(r=>r.modulo).find(m=>m && normalizarTxt(m)===alvo);
+  const btn=document.querySelector('nav button[data-aba="pastos"]');
+  if(btn) btn.click();
+  if(!real){ toast('Nenhum pasto cadastrado usa o módulo "'+nomeModulo+'" ainda.', true); return; }
+  filtros.modulo = real;
+  pagina=0;
+  atualizarTudo();
+  toast('Tabela filtrada pelo módulo "'+real+'".');
+}
+
+// ---- Relatórios ----
+function atualizarCapaRelatorio(rs){
+  const g=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
+  g('capaFazenda', cliente.fazenda || '—');
+  g('capaData', fmtD(HOJE));
+  g('capaCliente', cliente.nome || '—');
+  g('capaConsultor', cliente.consultor || '—');
+  g('capaMunicipio', cliente.municipio || '—');
+  g('capaTotalPastos', fmtI(rs.length));
+  g('capaAreaTotal', fmtN(soma(rs,'areaTotal'))+' ha');
+  const linkEl=document.getElementById('capaMapaLink');
+  if(linkEl){
+    if(cliente.mapa){ linkEl.href=cliente.mapa; linkEl.textContent='Abrir localização ↗'; }
+    else { linkEl.href='#'; linkEl.textContent='Não informada'; }
+  }
+}
+function renderRelatorios(rs){
+  renderGraficos(rs,'Rel');
+  renderKpis(rs,'kpisRel',false);
+  atualizarCapaRelatorio(rs);
+  const areaTotal=soma(rs,'areaTotal'), areaUtil=soma(rs,'areaUtil');
+  const uaTotal=soma(rs,'ua');
+  const lotacaoMedia = areaUtil? uaTotal/areaUtil : null;
+  const classificados=rs.filter(r=>r.classificacao).length;
+  const pctEmpMedio = areaTotal? areaUtil/areaTotal*100 : 0;
+  document.getElementById('relResumo').innerHTML=
+    `A seleção filtrada soma <b style="color:var(--ouro)">${fmtI(rs.length)} pastos</b> e <b style="color:var(--ouro)">${fmtN(areaTotal)} ha</b> de área total,
+     dos quais <b style="color:var(--ouro)">${fmtN(areaUtil)} ha</b> (${fmtN(pctEmpMedio)}%) estão hoje classificados como área útil empastada.
+     ${fmtI(classificados)} de ${fmtI(rs.length)} pastos já têm a Classificação do Pasto preenchida; ${fmtI(rs.length-classificados)} seguem pendentes de avaliação em campo.
+     A lotação atual soma <b style="color:var(--ouro)">${fmtN(uaTotal)} UA</b>, uma taxa média de <b style="color:var(--ouro)">${lotacaoMedia!=null?fmtN(lotacaoMedia):'—'} UA/ha</b> sobre a área útil.
+     Consulte a Compra Consolidada abaixo para as quantidades de insumo a adquirir.
+     As tabelas replicam as tabelas dinâmicas da planilha original, recalculadas ao vivo conforme os filtros do Painel.`;
+  pivot('relModulo', rs, 'modulo', 'Módulo', true);
+  pivot('relManejo', rs, 'manejo', 'Ação de Manejo', false);
+  pivotClassif(rs);
+  pivotCapim(rs);
+  pivotCompra(rs);
+}
+function pivot(id, rs, chave, rotulo, comLotacao){
+  const grupos={};
+  rs.forEach(r=>{const g=r[chave]||'Não informado';(grupos[g]=grupos[g]||[]).push(r)});
+  const entradas=Object.entries(grupos).sort((a,b)=>soma(b[1],'areaTotal')-soma(a[1],'areaTotal'));
+  let cab, linhas;
+  if(comLotacao){
+    const linhaCalc=arr=>{
+      const areaUtil=soma(arr,'areaUtil'), ua=soma(arr,'ua');
+      return `<td>${fmtN(areaUtil)}</td><td>${fmtN(ua)}</td><td>${areaUtil?fmtN(ua/areaUtil):'—'}</td>`;
+    };
+    cab=`<th>${rotulo}</th><th>Nº Pastos</th><th>Área Total (ha)</th><th>Área Útil (ha)</th><th>UA</th><th>Lotação (UA/ha)</th>`;
+    linhas=entradas.map(([g,arr])=>`<tr><td>${escapeHtml(g)}</td><td>${fmtI(arr.length)}</td><td>${fmtN(soma(arr,'areaTotal'))}</td>${linhaCalc(arr)}</tr>`).join('');
+    const tot=`<tr style="font-weight:700"><td>Total Geral</td><td>${fmtI(rs.length)}</td><td>${fmtN(soma(rs,'areaTotal'))}</td>${linhaCalc(rs)}</tr>`;
+    document.getElementById(id).innerHTML=`<thead><tr>${cab}</tr></thead><tbody>${linhas}${tot}</tbody>`;
+  } else {
+    const areaTotalGeral = soma(rs,'areaTotal')||1;
+    cab=`<th>${rotulo}</th><th>Nº Pastos</th><th>Área Total (ha)</th><th>% da Área</th>`;
+    linhas=entradas.map(([g,arr])=>`<tr><td>${escapeHtml(g)}</td><td>${fmtI(arr.length)}</td><td>${fmtN(soma(arr,'areaTotal'))}</td><td>${(soma(arr,'areaTotal')/areaTotalGeral*100).toLocaleString('pt-BR',{maximumFractionDigits:1})}%</td></tr>`).join('');
+    const tot=`<tr style="font-weight:700"><td>Total Geral</td><td>${fmtI(rs.length)}</td><td>${fmtN(soma(rs,'areaTotal'))}</td><td>100%</td></tr>`;
+    document.getElementById(id).innerHTML=`<thead><tr>${cab}</tr></thead><tbody>${linhas}${tot}</tbody>`;
+  }
+}
+function pivotCompra(rs){
+  const el=document.getElementById('relCompra'); if(!el) return;
+  const porProduto={};
+  rs.forEach(r=>(r.aplicacoes||[]).forEach(a=>{
+    if(!a.produtoId) return;
+    porProduto[a.produtoId]=porProduto[a.produtoId]||{total:0,nPastos:0};
+    porProduto[a.produtoId].total += (a.total||0);
+    porProduto[a.produtoId].nPastos += 1;
+  }));
+  const ids=Object.keys(porProduto);
+  if(!ids.length){ el.innerHTML='<thead><tr><th>Produto</th></tr></thead><tbody><tr><td>Nenhuma aplicação de produto lançada nos pastos filtrados.</td></tr></tbody>'; return; }
+  const linhas=ids.map(id=>{
+    const p=produtoPorId(id); const info=porProduto[id];
+    const unidadeBase = p? p.unidade.split('/')[0] : 'un';
+    return `<tr><td>${p?escapeHtml(p.nome):'Produto removido'}</td><td>${p?escapeHtml(p.categoria):'—'}</td><td>${fmtI(info.nPastos)}</td><td>${fmtN(info.total)} ${unidadeBase}</td></tr>`;
+  }).join('');
+  el.innerHTML=`<thead><tr><th>Produto</th><th>Categoria</th><th>Nº Pastos</th><th>Total a Comprar</th></tr></thead><tbody>${linhas}</tbody>`;
+}
+function pivotClassif(rs){
+  const grupos={};
+  CLASSIF.forEach(c=>grupos[c[0]]=[]);
+  const pend=[];
+  rs.forEach(r=>{ if(r.classificacao && grupos[r.classificacao]) grupos[r.classificacao].push(r); else pend.push(r); });
+  let linhas=CLASSIF.map(c=>{
+    const arr=grupos[c[0]]; if(!arr.length) return '';
+    return `<tr><td>${escapeHtml(c[0])}</td><td>${fmtI(arr.length)}</td><td>${fmtN(soma(arr,'areaTotal'))}</td><td>${(c[1]*100).toFixed(0)}%</td></tr>`;
+  }).join('');
+  if(pend.length) linhas+=`<tr><td>Não Classificado</td><td>${fmtI(pend.length)}</td><td>${fmtN(soma(pend,'areaTotal'))}</td><td>—</td></tr>`;
+  const tot=`<tr style="font-weight:700"><td>Total Geral</td><td>${fmtI(rs.length)}</td><td>${fmtN(soma(rs,'areaTotal'))}</td><td>${rs.length?fmtN(soma(rs,'areaUtil')/(soma(rs,'areaTotal')||1)*100):'—'}%</td></tr>`;
+  document.getElementById('relClassif').innerHTML=`<thead><tr><th>Classificação</th><th>Nº Pastos</th><th>Área Total (ha)</th><th>% Empastada</th></tr></thead><tbody>${linhas}${tot}</tbody>`;
+}
+function pivotCapim(rs){
+  const grupos={};
+  rs.forEach(r=>{const g=r.capim||'Não informado';(grupos[g]=grupos[g]||[]).push(r)});
+  const entradas=Object.entries(grupos).sort((a,b)=>soma(b[1],'areaTotal')-soma(a[1],'areaTotal'));
+  const linhas=entradas.map(([g,arr])=>`<tr><td>${escapeHtml(g)}</td><td>${fmtI(arr.length)}</td><td>${fmtN(soma(arr,'areaTotal'))}</td></tr>`).join('');
+  const tot=`<tr style="font-weight:700"><td>Total Geral</td><td>${fmtI(rs.length)}</td><td>${fmtN(soma(rs,'areaTotal'))}</td></tr>`;
+  document.getElementById('relCapim').innerHTML=`<thead><tr><th>Espécie do Capim</th><th>Nº Pastos</th><th>Área Total (ha)</th></tr></thead><tbody>${linhas}${tot}</tbody>`;
+}
+
+// ---- Export / Import ----
+function exportarCSV(){
+  const rs=filtrar();
+  const cab=['Pasto','Ação de Manejo','Módulo','Sistema de Produção','Área Total (ha)','Classificação do Pasto','% Área Empastada','Área Útil (ha)','Espécie do Capim','Tipo de Aguada','Tipo de Cocho','Quant. Cocho (m)','OBS','Qtd. Animais','Peso Médio (kg)','UA','Taxa de Lotação (UA/ha)','Aplicações (produto/ha)'];
+  const lin=rs.map(r=>[r.pasto,r.manejo,r.modulo,r.sistema,r.areaTotal,r.classificacao,
+    r.pctEmpastada!=null?(r.pctEmpastada*100).toFixed(1)+'%':'', r.areaUtil!=null?r.areaUtil.toFixed(2):'',
+    r.capim,r.aguada,r.cocho,r.qtCocho,r.obs,
+    r.qtdAnimais,r.pesoMedio,r.ua?r.ua.toFixed(2):'',r.taxaLotacao!=null?r.taxaLotacao.toFixed(2):'',
+    (r.aplicacoes||[]).map(a=>{const p=produtoPorId(a.produtoId);return (p?p.nome:'?')+' '+a.quantidadeHa+(p?'/'+p.unidade.split('/')[0]:'')}).join(' | ')]
+    .map(v=>v==null?'':String(v).replace(/;/g,',')).join(';'));
+  baixar('controle_pastagem_vista_alegre.csv','\ufeff'+cab.join(';')+'\n'+lin.join('\n'),'text/csv');
+  toast('CSV exportado com '+fmtI(rs.length)+' pastos.');
+}
+// ---- Versões Salvas (histórico de cenários, biblioteca exportável) ----
+const LS_KEY_VERSOES='controle_pastagem_versoes_v1';
+let versoesSalvas=(function(){
+  try{ return JSON.parse(armazem.ler(LS_KEY_VERSOES)||'[]'); }catch(e){ return []; }
+})();
+function persistirVersoes(){
+  try{ armazem.gravar(LS_KEY_VERSOES, JSON.stringify(versoesSalvas)); }catch(e){}
+}
+function snapshotAtual(){
+  return {extras, edicoes, cliente, mapaProp, catalogoProdutos, modulosRegistrados, ocultarBase, filtros:Object.assign({},filtros)};
+}
+function salvarVersaoAtual(){
+  const campo=document.getElementById('nomeVersaoNova');
+  const digitado=campo? campo.value.trim() : '';
+  const sugestao=(cliente.fazenda?('Fazenda '+cliente.fazenda+' — '):'')+fmtD(new Date());
+  const nome=digitado || sugestao;
+  versoesSalvas.unshift({id:'v'+Date.now()+'_'+Math.random().toString(36).slice(2,8), nome, data:new Date().toISOString(), snapshot:JSON.parse(JSON.stringify(snapshotAtual()))});
+  persistirVersoes(); renderVersoesSalvas();
+  if(campo) campo.value='';
+  toast('Versão salva: "'+nome+'".');
+}
+// Confirmação por clique duplo — evita depender de confirm()/prompt() nativos,
+// que alguns navegadores embutidos (apps, webviews) bloqueiam ou ignoram silenciosamente.
+function exigirDoisCliques(botao, textoConfirmar, nomeFuncao, arg){
+  if(botao.dataset.confirmando==='1'){
+    delete botao.dataset.confirmando;
+    clearTimeout(botao._timeoutConfirmacao);
+    botao.textContent=botao.dataset.textoOriginal;
+    window[nomeFuncao](arg);
+  } else {
+    botao.dataset.confirmando='1';
+    botao.dataset.textoOriginal=botao.textContent;
+    botao.textContent=textoConfirmar;
+    botao._timeoutConfirmacao=setTimeout(()=>{
+      if(botao.dataset.confirmando==='1'){ delete botao.dataset.confirmando; botao.textContent=botao.dataset.textoOriginal; }
+    },4000);
+  }
+}
+function carregarVersao(id){
+  const v=versoesSalvas.find(x=>x.id===id); if(!v) return;
+  const s=v.snapshot;
+  extras=(s.extras||[]).map(e=>{recalc(e);return e});
+  edicoes=s.edicoes||{}; Object.values(edicoes).forEach(e=>recalc(e));
+  cliente=Object.assign(clienteDefault(), s.cliente||{});
+  cliente.anexos=cliente.anexos||[]; cliente.observacoes=cliente.observacoes||[];
+  mapaProp=Object.assign(mapaPropDefault(), s.mapaProp||{});
+  mapaProp.talhoes=mapaProp.talhoes||[];
+  catalogoProdutos=(s.catalogoProdutos && s.catalogoProdutos.length) ? s.catalogoProdutos : catalogoDefault();
+  modulosRegistrados=(s.modulosRegistrados && s.modulosRegistrados.length) ? s.modulosRegistrados : modulosRegistradosDefault();
+  ocultarBase = (s.ocultarBase!==undefined) ? s.ocultarBase : false;
+  Object.keys(filtros).forEach(k=>filtros[k]='');
+  Object.assign(filtros, s.filtros||{});
+  if(geoLayer && leafletMap){ leafletMap.removeLayer(geoLayer); geoLayer=null; }
+  assinaturaMapaDesenhado=null; limparDetalheTalhao(); sincronizarControlesMapa();
+  persistir(); atualizarTudo(); carregarCliente();
+  atualizarInfoArquivoMapa(); renderTalhoes(); atualizarDatalistModulos();
+  renderCatalogoProdutos(); renderFormAplicacoes(); renderModulosRegistrados();
+  if(document.getElementById('mapa').classList.contains('ativa')) ativarAbaMapa();
+  toast('Versão "'+v.nome+'" carregada.');
+}
+function excluirVersao(id){
+  const v=versoesSalvas.find(x=>x.id===id); if(!v) return;
+  versoesSalvas=versoesSalvas.filter(x=>x.id!==id);
+  persistirVersoes(); renderVersoesSalvas();
+  toast('Versão excluída.');
+}
+function renderVersoesSalvas(){
+  const div=document.getElementById('listaVersoes'); if(!div) return;
+  if(!versoesSalvas.length){ div.innerHTML='<div class="dica" style="display:block">Nenhuma versão salva ainda. Clique em "Salvar Versão Atual" para guardar o momento de agora e poder voltar a ele depois.</div>'; return; }
+  div.innerHTML=versoesSalvas.map(v=>{
+    const dt=new Date(v.data);
+    return `<div class="talhao-item">
+      <div style="flex:1;min-width:220px"><b style="color:var(--creme)">${escapeHtml(v.nome)}</b><br><span class="dica">${fmtD(dt)} às ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div>
+      <button class="btn fantasma" onclick="exigirDoisCliques(this,'Clique de novo p/ confirmar','carregarVersao','${q(v.id)}')">Carregar esta Versão</button>
+      <button class="btn perigo" onclick="exigirDoisCliques(this,'Confirma exclusão?','excluirVersao','${q(v.id)}')">excluir</button>
+    </div>`;
+  }).join('');
+}
+function exportarBibliotecaVersoes(){
+  baixar('controle_pastagem_biblioteca_versoes.json', JSON.stringify(versoesSalvas), 'application/json');
+  toast('Biblioteca exportada ('+fmtI(versoesSalvas.length)+' versão(ões)).');
+}
+function importarBibliotecaVersoes(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const lista=JSON.parse(r.result);
+    if(!Array.isArray(lista)) throw new Error('formato inválido');
+    const idsExistentes=new Set(versoesSalvas.map(v=>v.id));
+    let novas=0;
+    lista.forEach(v=>{ if(v && v.id && !idsExistentes.has(v.id)){ versoesSalvas.push(v); novas++; } });
+    versoesSalvas.sort((a,b)=>new Date(b.data)-new Date(a.data));
+    persistirVersoes(); renderVersoesSalvas();
+    toast(novas+' versão(ões) nova(s) importada(s) da biblioteca.');
+  }catch(e){ toast('Arquivo de biblioteca inválido.', true); } };
+  r.readAsText(f); ev.target.value='';
+}
+
+function pedirConfirmacaoLimpar(){
+  document.getElementById('confirmacaoLimpar').style.display='block';
+  document.getElementById('btnLimparDados').style.display='none';
+}
+function cancelarLimpar(){
+  const div=document.getElementById('confirmacaoLimpar'); if(div) div.style.display='none';
+  const btn=document.getElementById('btnLimparDados'); if(btn) btn.style.display='inline-block';
+}
+function limparTodosDados(){
+  extras=[]; edicoes={};
+  ocultarBase=true;
+  cliente=clienteDefault();
+  mapaProp=mapaPropDefault();
+  catalogoProdutos=catalogoDefault();
+  modulosRegistrados=modulosRegistradosDefault();
+  if(geoLayer && leafletMap){ leafletMap.removeLayer(geoLayer); geoLayer=null; }
+  talhaoSelecionado=null;
+  persistir();
+  atualizarTudo(); carregarCliente();
+  atualizarInfoArquivoMapa(); renderTalhoes(); atualizarDatalistModulos();
+  renderCatalogoProdutos(); renderFormAplicacoes(); renderModulosRegistrados();
+  mostrarAvisoMapa(null);
+  cancelarLimpar();
+  toast('Tudo apagado — a ferramenta está zerada.');
+}
+function exportarJSON(){
+  baixar('controle_pastagem_backup.json', JSON.stringify({extras,edicoes,cliente,mapaProp,catalogoProdutos,modulosRegistrados,ocultarBase,filtros}), 'application/json');
+  toast('Backup completo exportado (pastos + cliente + anexos + observações + mapa + produtos + módulos).');
+}
+function importarJSON(ev){
+  const f=ev.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const s=JSON.parse(r.result);
+    catalogoProdutos=(s.catalogoProdutos && s.catalogoProdutos.length) ? s.catalogoProdutos : catalogoDefault();
+    modulosRegistrados=(s.modulosRegistrados && s.modulosRegistrados.length) ? s.modulosRegistrados : modulosRegistradosDefault();
+    ocultarBase=(s.ocultarBase!==undefined) ? s.ocultarBase : false;
+    extras=(s.extras||[]).map(e=>{recalc(e);return e});
+    edicoes=s.edicoes||{}; Object.values(edicoes).forEach(e=>recalc(e));
+    cliente=Object.assign(clienteDefault(), s.cliente||{});
+    cliente.anexos=cliente.anexos||[]; cliente.observacoes=cliente.observacoes||[];
+    mapaProp=Object.assign(mapaPropDefault(), s.mapaProp||{});
+    mapaProp.talhoes=mapaProp.talhoes||[];
+    Object.keys(filtros).forEach(k=>filtros[k]='');
+    Object.assign(filtros, s.filtros||{});
+    assinaturaMapaDesenhado=null; limparDetalheTalhao(); sincronizarControlesMapa();
+    persistir(); atualizarTudo(); carregarCliente();
+    atualizarInfoArquivoMapa(); renderTalhoes(); atualizarDatalistModulos();
+    renderCatalogoProdutos(); renderFormAplicacoes(); renderModulosRegistrados();
+    if(document.getElementById('mapa').classList.contains('ativa')) ativarAbaMapa();
+    toast('Backup importado.');
+  }catch(e){toast('Arquivo inválido.',true)}};
+  r.readAsText(f); ev.target.value='';
+}
+function baixar(nome,conteudo,tipo){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([conteudo],{type:tipo})); a.download=nome; a.click();
+}
+function toast(msg,erro){
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.style.background=erro?'#5a2418':'var(--verde-campo)';
+  t.classList.add('mostrar'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('mostrar'),3400);
+}
+
+// ---- Navegação / boot ----
+document.querySelectorAll('nav button[data-aba]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button[data-aba]').forEach(x=>x.classList.remove('ativo'));
+  document.querySelectorAll('.aba').forEach(x=>x.classList.remove('ativa'));
+  const dd=document.getElementById('dropdownCadastros');
+  if(dd) dd.classList.remove('ativo','aberto');
+  b.classList.add('ativo');
+  document.getElementById(b.dataset.aba).classList.add('ativa');
+  if(b.dataset.subaba){
+    if(dd) dd.classList.add('ativo');
+    mostrarSubCadastro(b.dataset.subaba);
+  }
+  if(b.dataset.aba==='painel') renderGraficos(filtrar());
+  if(b.dataset.aba==='relatorios') renderRelatorios(filtrar());
+  if(b.dataset.aba==='mapa') ativarAbaMapa();
+});
+function alternarMenuCadastros(ev){
+  if(ev) ev.stopPropagation();
+  const dd=document.getElementById('dropdownCadastros');
+  if(dd) dd.classList.toggle('aberto');
+}
+document.addEventListener('click',(ev)=>{
+  const dd=document.getElementById('dropdownCadastros');
+  if(dd && !dd.contains(ev.target)) dd.classList.remove('aberto');
+});
+function mostrarSubCadastro(subId){
+  document.querySelectorAll('.subaba').forEach(x=>x.classList.remove('subaba-ativa'));
+  document.querySelectorAll('.subnav-cadastros button').forEach(x=>x.classList.remove('ativo'));
+  document.querySelectorAll('.nav-dropdown-menu button').forEach(x=>x.classList.remove('subativo'));
+  const painel=document.getElementById(subId); if(painel) painel.classList.add('subaba-ativa');
+  const botaoSubnav=document.querySelector('.subnav-cadastros button[data-subaba="'+subId+'"]'); if(botaoSubnav) botaoSubnav.classList.add('ativo');
+  const botaoMenu=document.querySelector('.nav-dropdown-menu button[data-subaba="'+subId+'"]'); if(botaoMenu) botaoMenu.classList.add('subativo');
+}
+function irParaSubCadastro(subId){
+  mostrarSubCadastro(subId);
+}
+function atualizarTudo(){
+  const rs=filtrar();
+  renderFiltros('filtrosPainel'); renderFiltros('filtrosTabela');
+  renderKpis(rs); renderGraficos(rs); renderTabela(); renderRelatorios(rs);
+  document.getElementById('totalGeral').textContent=fmtI(todos().length);
+  atualizarDatalistModulos();
+  atualizarTooltipsMapa();
+}
+// ---- Tema claro/escuro ----
+function aplicarTema(tema){
+  document.documentElement.setAttribute('data-tema', tema);
+  const btn=document.getElementById('btnTema');
+  if(btn) btn.textContent = tema==='claro' ? '🌙 Modo Escuro' : '☀️ Modo Claro';
+  try{ armazem.gravar('pastagem_tema_v1', tema); }catch(e){}
+  renderGraficos(filtrar());
+  if(document.getElementById('relatorios') && document.getElementById('relatorios').classList.contains('ativa')) renderGraficos(filtrar(),'Rel');
+}
+function alternarTema(){
+  const atual=document.documentElement.getAttribute('data-tema')||'escuro';
+  aplicarTema(atual==='escuro' ? 'claro' : 'escuro');
+}
+(function restaurarTema(){
+  let salvo='escuro';
+  try{ salvo=armazem.ler('pastagem_tema_v1')||'escuro'; }catch(e){}
+  document.documentElement.setAttribute('data-tema', salvo);
+  const btn=document.getElementById('btnTema');
+  if(btn) btn.textContent = salvo==='claro' ? '🌙 Modo Escuro' : '☀️ Modo Claro';
+})();
+
+document.getElementById('hoje').textContent=fmtD(HOJE);
+document.getElementById('dataEmissao').textContent=fmtD(HOJE);
+preencherSelects();
+carregarCliente();
+renderCatalogoProdutos();
+renderFormAplicacoes();
+renderModulosRegistrados();
+renderVersoesSalvas();
+atualizarInfoArquivoMapa();
+renderTalhoes();
+atualizarDatalistModulos();
+limparDetalheTalhao();
+sincronizarControlesMapa();
+atualizarTudo(); calcVivo();
+window.addEventListener('resize',()=>{ renderGraficos(filtrar()); if(document.getElementById('relatorios').classList.contains('ativa')) renderGraficos(filtrar(),'Rel'); });
+window.addEventListener('beforeprint',()=>renderGraficos(filtrar(),'Rel'));
+</script>
+</body>
+</html>

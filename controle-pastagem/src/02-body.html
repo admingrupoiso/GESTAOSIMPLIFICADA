@@ -1,0 +1,378 @@
+<body>
+<header>
+  <div>
+    <h1>CONTROLE DE <span>PASTAGEM</span></h1>
+    <div class="sub" id="subFazenda">Cadastre a fazenda na aba Cliente & Fazenda</div>
+  </div>
+  <div class="brand">
+    <button class="btn fantasma" id="btnTema" onclick="alternarTema()" style="padding:5px 14px;font-size:12.5px;margin-bottom:8px">☀️ Modo Claro</button>
+    <div class="logo">GO ON AGRO</div>
+    <div class="data-hoje">Hoje: <span id="hoje"></span> · <span id="totalGeral"></span> pastos cadastrados</div>
+  </div>
+</header>
+
+<nav>
+  <button class="ativo" data-aba="painel">Painel</button>
+  <button data-aba="pastos">Pastos</button>
+  <button data-aba="mapa">Mapa</button>
+  <div class="nav-dropdown" id="dropdownCadastros">
+    <button class="nav-dropdown-btn" onclick="alternarMenuCadastros(event)">Cadastros ▾</button>
+    <div class="nav-dropdown-menu" id="menuCadastros">
+      <button data-aba="cadastros" data-subaba="sub-pastos">Pastos / Piquetes</button>
+      <button data-aba="cadastros" data-subaba="sub-modulos">Módulos</button>
+      <button data-aba="cadastros" data-subaba="sub-produtos">Produtos</button>
+      <button data-aba="cadastros" data-subaba="sub-cliente">Cliente &amp; Fazenda</button>
+    </div>
+  </div>
+  <button data-aba="relatorios">Relatórios</button>
+  <button data-aba="versoes">Versões Salvas</button>
+</nav>
+
+<main>
+<!-- ============ PAINEL ============ -->
+<section id="painel" class="aba ativa">
+  <div class="barra-acoes" style="justify-content:space-between">
+    <span class="dica" style="font-size:11.5px">Clique em qualquer indicador ou gráfico para abrir a análise completa no Relatório.</span>
+    <button class="btn fantasma" onclick="irParaRelatorio()">Ver Relatório Completo →</button>
+  </div>
+  <div class="filtros" id="filtrosPainel"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grade-graficos">
+    <div class="cartao"><h3><span>Área Total por Módulo</span><span class="direita"><small>top 15 · hectares</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gModulo" height="260"></canvas></div>
+    <div class="cartao"><h3><span>Classificação do Pasto</span><span class="direita"><small>distribuição</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gClassif" height="200"></canvas><div class="legenda-html" id="legClassif"></div></div>
+    <div class="cartao"><h3><span>Ação de Manejo</span><span class="direita"><small>nº de pastos</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gManejo" height="200"></canvas><div class="legenda-html" id="legManejo"></div></div>
+    <div class="cartao"><h3><span>Espécie do Capim</span><span class="direita"><small>área total · ha</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gCapim" height="260"></canvas></div>
+    <div class="cartao"><h3><span>Tipo de Aguada</span><span class="direita"><small>nº de pastos</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gAguada" height="170"></canvas><div class="legenda-html" id="legAguada"></div></div>
+    <div class="cartao"><h3><span>Tipo de Cocho</span><span class="direita"><small>nº de pastos</small><button class="link-relatorio" onclick="irParaRelatorio()">Ver relatório →</button></span></h3><canvas id="gCocho" height="170"></canvas><div class="legenda-html" id="legCocho"></div></div>
+  </div>
+  <p class="dica" style="display:block;margin-top:6px">Clique em qualquer linha da legenda (ex.: "Degradação 2") para ver só esses pastos na tabela.</p>
+</section>
+
+<!-- ============ PASTOS ============ -->
+<section id="pastos" class="aba">
+  <div class="filtros" id="filtrosTabela"></div>
+  <div class="barra-acoes">
+    <input type="text" id="busca" placeholder="Buscar pasto, módulo, capim, manejo…" style="flex:1;min-width:220px">
+    <button class="btn fantasma" onclick="exportarCSV()">Exportar CSV</button>
+    <button class="btn fantasma" onclick="exportarJSON()">Backup JSON Completo</button>
+    <label class="btn fantasma upload-label">Importar JSON<input type="file" accept=".json" style="display:none" onchange="importarJSON(event)"></label>
+  </div>
+  <div class="dica" style="display:block;margin-bottom:10px;font-size:11.5px">
+    Cor do manejo: <span class="badge-manejo" style="background:#E5484D;font-weight:800">Reforma</span>
+    <span class="badge-manejo" style="background:#5B9BD5">Herbicida</span>
+    <span class="badge-manejo" style="background:#FFC000">Calagem</span>
+    <span class="badge-manejo" style="background:#70AD47">Adubo</span>
+    <span class="badge-manejo" style="background:#ED7D31">Roçada</span>
+    — recriada a partir da formatação condicional da planilha original.
+  </div>
+  <div class="envoltorio-tabela" style="max-height:600px;overflow-y:auto">
+    <table id="tabela">
+      <thead><tr id="cabecalho"></tr></thead>
+      <tbody id="corpo"></tbody>
+    </table>
+  </div>
+  <div class="paginacao">
+    <span id="infoPag"></span>
+    <button id="pAnt">‹ Anterior</button>
+    <button id="pProx">Próxima ›</button>
+  </div>
+</section>
+
+<!-- ============ CADASTRO ============ -->
+<section id="cadastros" class="aba">
+  <div class="subnav-cadastros">
+    <button data-subaba="sub-pastos" class="ativo" onclick="irParaSubCadastro('sub-pastos')">Pastos / Piquetes</button>
+    <button data-subaba="sub-modulos" onclick="irParaSubCadastro('sub-modulos')">Módulos</button>
+    <button data-subaba="sub-produtos" onclick="irParaSubCadastro('sub-produtos')">Produtos</button>
+    <button data-subaba="sub-cliente" onclick="irParaSubCadastro('sub-cliente')">Cliente &amp; Fazenda</button>
+  </div>
+
+  <div id="sub-pastos" class="subaba subaba-ativa">
+    <div class="cartao">
+      <h3><span>Importar Pastos de uma Planilha</span><small>XLSX, XLS ou CSV</small></h3>
+      <p class="dica" style="display:block;margin-bottom:12px">Envie uma planilha de outra fazenda ou um levantamento pronto — você escolhe qual coluna do arquivo corresponde a qual campo daqui. Pastos com o mesmo nome de um já cadastrado são atualizados; os novos são criados.</p>
+      <div class="barra-acoes">
+        <label class="btn upload-label">Selecionar Arquivo
+          <input type="file" id="inputImportar" accept=".xlsx,.xls,.csv" style="display:none" onchange="carregarArquivoImportar(event)">
+        </label>
+        <span class="dica" id="infoImportarArquivo" style="font-size:11.5px;color:var(--mudo)"></span>
+      </div>
+      <div id="areaMapeamentoImportar" style="display:none;margin-top:16px">
+        <p class="dica" style="display:block;margin-bottom:10px">Confira o mapeamento abaixo (tentamos adivinhar pelo nome da coluna) e ajuste onde precisar.</p>
+        <div id="listaMapeamento"></div>
+        <div class="barra-acoes" style="margin-top:14px">
+          <button class="btn" onclick="executarImportacao()">Importar Pastos</button>
+          <button class="btn fantasma" onclick="cancelarImportacao()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="aviso-formula">
+      <b>Fórmulas automáticas da planilha original preservadas:</b> % Área Empastada = definida pela Classificação do Pasto
+      (Degradação 1 a 3 = 40–60% · Produtivo 1 a 4 = 70–100%) · Área Útil (ha) = Área Total × % Área Empastada.
+      <b>UA</b> = (Qtd. Animais × Peso Médio) ÷ 450 · <b>Taxa de Lotação</b> = UA ÷ Área Útil (nunca a Área Total).
+      Já os produtos (Calcário, MAP, Adubo, Herbicida, Outros) são sempre calculados sobre a Área Total, nunca a Útil.
+      Os campos verdes são calculados em tempo real — você não precisa preenchê-los.
+    </div>
+
+    <div class="cartao">
+      <h3 id="tituloForm">Novo Pasto</h3>
+
+      <div class="subgrupo">Identificação do Pasto/Piquete</div>
+      <div class="form-grade">
+        <div class="campo"><label>Pasto *</label><input type="text" id="fPasto" placeholder="ex.: Pasto 107"></div>
+        <div class="campo"><label>Módulo / Talhão</label><select id="fModulo"></select><input type="text" id="fModuloNovo" placeholder="ou digite um novo" style="margin-top:5px"></div>
+        <div class="campo"><label>Sistema de Produção</label><select id="fSistema"></select><input type="text" id="fSistemaNovo" placeholder="ou digite um novo" style="margin-top:5px"></div>
+      </div>
+
+      <div class="subgrupo">Área e Classificação</div>
+      <div class="form-grade">
+        <div class="campo"><label>Área Total (ha) *</label><input type="number" id="fArea" step="0.01" placeholder="ex.: 12.50"></div>
+        <div class="campo"><label>Classificação do Pasto</label><select id="fClassif"></select></div>
+        <div class="campo"><label>% Área Empastada (calculado)</label><div class="calculado" id="cPct">—<small>=VLOOKUP(Classificação)</small></div></div>
+        <div class="campo"><label>Área Útil / ha (calculado)</label><div class="calculado" id="cAreaUtil">—<small>=Área Total × % Empastada</small></div></div>
+      </div>
+
+      <div class="subgrupo">Cobertura e Infraestrutura</div>
+      <div class="form-grade">
+        <div class="campo"><label>Espécie do Capim</label><select id="fCapim"></select><input type="text" id="fCapimNovo" placeholder="ou digite uma nova" style="margin-top:5px"></div>
+        <div class="campo"><label>Tipo de Aguada</label><select id="fAguada"></select><input type="text" id="fAguadaNovo" placeholder="ou digite uma nova" style="margin-top:5px"></div>
+        <div class="campo"><label>Tipo de Cocho</label><select id="fCocho"></select><input type="text" id="fCochoNovo" placeholder="ou digite um novo" style="margin-top:5px"></div>
+        <div class="campo"><label>Quant. Cocho (m)</label><input type="number" id="fQtCocho" step="0.1" placeholder="ex.: 6"></div>
+      </div>
+
+      <div class="subgrupo">Animais e Lotação</div>
+      <div class="form-grade">
+        <div class="campo"><label>Quantidade de Animais</label><input type="number" id="fQtdAnimais" step="1" placeholder="ex.: 30"></div>
+        <div class="campo"><label>Peso Médio (kg)</label><input type="number" id="fPesoMedio" step="1" placeholder="ex.: 380"></div>
+        <div class="campo"><label>UA (calculado)</label><div class="calculado" id="cUA">—<small>=(Qtd. × Peso) ÷ 450</small></div></div>
+        <div class="campo"><label>Taxa de Lotação (calculado)</label><div class="calculado" id="cLotacao">—<small>=UA ÷ Área Útil</small></div></div>
+      </div>
+
+      <div class="subgrupo">Aplicações de Produtos <span style="color:var(--mudo);font-family:'Inter',sans-serif;font-size:10.5px;letter-spacing:.05em;text-transform:none">— calculado sobre a Área Total</span></div>
+      <div id="listaAplicacoesForm"></div>
+      <div class="barra-acoes" style="margin-top:10px"><button class="btn fantasma" onclick="adicionarAplicacaoForm()">+ Adicionar Produto a este Pasto</button></div>
+
+      <div class="subgrupo">Manejo e Observações</div>
+      <div class="form-grade">
+        <div class="campo"><label>Ação de Manejo</label><select id="fManejo"></select><input type="text" id="fManejoNovo" placeholder="ou digite uma nova" style="margin-top:5px"></div>
+        <div class="campo largo"><label>OBS</label><input type="text" id="fObs" placeholder="ex.: reforma 50%, misturado com paredão…"></div>
+      </div>
+
+      <div class="barra-acoes" style="margin-top:22px">
+        <button class="btn" onclick="salvarPasto()" id="btnSalvar">Salvar Pasto</button>
+        <button class="btn fantasma" onclick="limparForm()">Limpar</button>
+        <button class="btn perigo" id="btnExcluir" style="display:none" onclick="excluirPasto()">Excluir Registro</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sub-modulos" class="subaba">
+    <div class="cartao">
+      <h3><span>Cadastro de Módulos</span><small>listar, renomear em bloco, cadastrar antes de ter pasto</small></h3>
+      <div class="form-grade">
+        <div class="campo largo"><label>Nome do Novo Módulo</label><input type="text" id="mNome" placeholder="ex.: Fundo do Sítio"></div>
+      </div>
+      <div class="barra-acoes" style="margin-top:10px"><button class="btn fantasma" onclick="adicionarModulo()">Cadastrar Módulo</button></div>
+      <p class="dica" style="display:block;margin:14px 0 8px">Renomear aqui atualiza automaticamente todos os pastos e o talhão do mapa que usam esse módulo. <span id="contagemModulos" style="color:var(--mudo)"></span></p>
+      <div id="listaModulosRegistrados"></div>
+    </div>
+  </div>
+
+  <div id="sub-produtos" class="subaba">
+    <div class="cartao cartao-produtos">
+      <h3><span>Catálogo de Produtos</span><small>Adubo · Calcário · Herbicida · Outros</small></h3>
+      <div class="form-grade">
+        <div class="campo"><label>Nome do Produto</label><input type="text" id="pNome" placeholder="ex.: Ureia"></div>
+        <div class="campo"><label>Categoria</label><select id="pCategoria">
+          <option>Adubo</option><option>Calcário</option><option>Herbicida</option><option>Outro</option>
+        </select></div>
+        <div class="campo"><label>Unidade</label><select id="pUnidade">
+          <option value="kg/ha">kg/ha</option><option value="ton/ha">ton/ha</option><option value="L/ha">L/ha</option>
+        </select></div>
+      </div>
+      <div class="barra-acoes" style="margin-top:14px"><button class="btn fantasma" onclick="adicionarProduto()">Adicionar Produto ao Catálogo</button></div>
+      <div id="listaProdutos" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <div id="sub-cliente" class="subaba">
+    <div class="cartao">
+      <h3>Dados do Cliente e da Propriedade</h3>
+      <div class="form-grade">
+        <div class="campo"><label>Cliente / Produtor</label><input type="text" id="clNome" placeholder="ex.: José da Silva"></div>
+        <div class="campo"><label>Fazenda</label><input type="text" id="clFazenda" placeholder="ex.: Vista Alegre"></div>
+        <div class="campo"><label>Consultor Responsável</label><input type="text" id="clConsultor" placeholder="ex.: Renata Erler — Zootecnista"></div>
+        <div class="campo"><label>Telefone / WhatsApp</label><input type="tel" id="clTelefone" placeholder="(00) 00000-0000"></div>
+        <div class="campo"><label>E-mail</label><input type="email" id="clEmail" placeholder="contato@exemplo.com"></div>
+        <div class="campo"><label>Município / UF</label><input type="text" id="clMunicipio" placeholder="ex.: Barreiras/BA"></div>
+      </div>
+      <div class="barra-acoes" style="margin-top:20px">
+        <button class="btn" onclick="salvarCliente()">Salvar Dados do Cliente</button>
+      </div>
+    </div>
+
+    <div class="cartao">
+      <h3>Localização</h3>
+      <div class="form-grade">
+        <div class="campo largo"><label>Link do Google Maps ou Google Earth</label>
+          <input type="url" id="clMapa" placeholder="https://maps.app.goo.gl/... ou https://earth.google.com/...">
+          <span class="dica">Cole aqui o link de compartilhamento da localização da sede ou do perímetro da fazenda.</span>
+        </div>
+      </div>
+      <div class="barra-acoes" style="margin-top:16px">
+        <button class="btn" onclick="salvarCliente()">Salvar Localização</button>
+        <button class="btn fantasma" id="btnAbrirMapa" onclick="abrirMapa()">Abrir Localização ↗</button>
+      </div>
+    </div>
+
+    <div class="cartao">
+      <h3>Anexos da Propriedade <small>PDF, KML, KMZ, imagens…</small></h3>
+      <div class="barra-acoes">
+        <label class="btn upload-label">Anexar Arquivo(s)
+          <input type="file" id="inputAnexo" multiple accept=".pdf,.kml,.kmz,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gpx" style="display:none" onchange="anexarArquivos(event)">
+        </label>
+        <span class="dica" id="infoArmazenamento" style="font-size:11px;color:var(--mudo)"></span>
+      </div>
+      <div class="barra-armazenamento"><div class="fill" id="barraArmazFill" style="width:0%"></div></div>
+      <div class="lista-anexos" id="listaAnexos"></div>
+    </div>
+
+    <div class="cartao">
+      <h3>Observações do Consultor</h3>
+      <div class="campo largo">
+        <textarea id="notaTexto" rows="3" placeholder="Registre aqui observações de campo, visitas, recomendações…"></textarea>
+      </div>
+      <div class="barra-acoes" style="margin-top:12px">
+        <button class="btn" onclick="adicionarObservacao()">Adicionar Observação</button>
+      </div>
+      <div id="listaObservacoes" style="margin-top:16px"></div>
+    </div>
+
+    <div class="cartao" style="border-color:var(--ruim)">
+      <h3 style="color:var(--ruim)">Zona de Risco</h3>
+      <p class="dica" style="display:block;margin-bottom:12px">Apaga TUDO deste navegador — inclusive os pastos de exemplo da Vista Alegre, se estiverem carregados — voltando a ferramenta pra um estado zerado, pronto pra outra fazenda. Não pode ser desfeito — se quiser manter uma cópia, exporte o Backup JSON antes (aba Pastos).</p>
+      <button class="btn perigo" id="btnLimparDados" onclick="pedirConfirmacaoLimpar()">Limpar Todos os Dados</button>
+      <div id="confirmacaoLimpar" style="display:none;margin-top:14px">
+        <p class="dica" style="display:block;color:var(--ruim);margin-bottom:10px;font-weight:600">Tem certeza? Isso apaga tudo agora e não pode ser desfeito.</p>
+        <div class="barra-acoes">
+          <button class="btn perigo" onclick="limparTodosDados()">Sim, apagar tudo</button>
+          <button class="btn fantasma" onclick="cancelarLimpar()">Cancelar</button>
+        </div>
+      </div>
+      <p class="dica" style="display:block;margin:16px 0 8px">Quer só dar uma olhada em como a ferramenta funciona? Carregue os 106 pastos de exemplo da Fazenda Vista Alegre (não mexe no que você já tiver cadastrado).</p>
+      <button class="btn fantasma" onclick="carregarDadosExemplo()">Carregar Dados de Exemplo (Vista Alegre)</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MAPA ============ -->
+<section id="mapa" class="aba">
+  <div class="cartao">
+    <h3><span>Mapa da Propriedade</span><small>KMZ ou KML</small></h3>
+    <div class="barra-acoes">
+      <label class="btn upload-label">Carregar Mapa (KMZ/KML)
+        <input type="file" id="inputMapa" accept=".kmz,.kml" style="display:none" onchange="carregarArquivoMapa(event)">
+      </label>
+      <button class="btn fantasma" onclick="removerMapa()">Remover Mapa</button>
+      <button class="btn fantasma" onclick="enquadrarMapaTudo()" title="Volta a mostrar a fazenda inteira">Enquadrar tudo</button>
+      <label class="check-mapa" title="Mostra, sobre cada talhão, quantos animais estão no lote e o aproveitamento do pasto">
+        <input type="checkbox" id="chkRotulosMapa" checked onchange="alternarRotulosMapa(this.checked)"> Rótulos nos talhões
+      </label>
+      <span class="dica" id="infoMapaArquivo" style="font-size:11.5px;color:var(--mudo)"></span>
+    </div>
+    <div class="dica" style="display:block;margin-bottom:8px;font-size:11.5px">
+      Cor do talhão = classificação predominante (por área):
+      <span class="badge-manejo" style="background:#E5484D">Degradação 3</span>
+      <span class="badge-manejo" style="background:#E8794B">Degradação 2</span>
+      <span class="badge-manejo" style="background:#F2A65A">Degradação 1</span>
+      <span class="badge-manejo" style="background:#B8D98D;color:#0d0d0d">Produtivo 1</span>
+      <span class="badge-manejo" style="background:#8FC966;color:#0d0d0d">Produtivo 2</span>
+      <span class="badge-manejo" style="background:#5FAE46">Produtivo 3</span>
+      <span class="badge-manejo" style="background:#2B4D1A">Produtivo 4</span>
+      <span class="badge-manejo" style="background:#9a9478">Sem classificação</span>
+    </div>
+    <div class="dica" style="display:block;margin-bottom:8px;font-size:11.5px">
+      Rótulo do talhão: <b>nome do módulo</b>, <b>quantidade de animais</b> daquele lote e
+      <b>% de aproveitamento do pasto</b> (área útil ÷ área total). O mapa guarda o zoom onde você
+      parou — use "Enquadrar tudo" para voltar à fazenda inteira.
+    </div>
+    <div id="mapaLeaflet">
+      <div id="mapaDetalhe" class="mapa-detalhe"></div>
+    </div>
+    <div class="aviso-alerta" id="mapaAviso" style="display:none;margin-top:12px"></div>
+  </div>
+
+  <div class="cartao">
+    <h3><span>Talhões Identificados</span><small id="contagemTalhoes"></small></h3>
+    <p class="dica" style="display:block;margin-bottom:12px">A maioria dos talhões já chega com nome do próprio arquivo. Ajuste o campo "Nome do Módulo" só onde precisar — é ele que conecta o talhão do mapa aos pastos cadastrados. Clique em "Destacar no mapa" para confirmar qual talhão é qual antes de renomear.</p>
+    <div id="listaTalhoes"></div>
+    <datalist id="listaModulosDatalist"></datalist>
+  </div>
+</section>
+
+<!-- ============ RELATÓRIOS ============ -->
+<section id="relatorios" class="aba">
+  <div class="barra-acoes" style="justify-content:space-between">
+    <span class="dica" style="font-size:11.5px">Este relatório reúne capa, indicadores, gráficos e tabelas — pronto para gerar PDF.</span>
+    <button class="btn" onclick="window.print()">Imprimir / Gerar PDF</button>
+  </div>
+
+  <div class="cartao capa">
+    <div>
+      <div class="titulo-rel">RELATÓRIO DE CONTROLE DE PASTAGEM</div>
+      <div class="sub-rel">Fazenda <span id="capaFazenda"></span> · Emitido em <span id="capaData"></span> · Go On Agro</div>
+    </div>
+    <div class="capa-grade">
+      <div><div class="rotulo-capa">Cliente / Produtor</div><div class="valor-capa" id="capaCliente"></div></div>
+      <div><div class="rotulo-capa">Consultor Responsável</div><div class="valor-capa" id="capaConsultor"></div></div>
+      <div><div class="rotulo-capa">Município / UF</div><div class="valor-capa" id="capaMunicipio"></div></div>
+      <div><div class="rotulo-capa">Pastos no Relatório</div><div class="valor-capa" id="capaTotalPastos"></div></div>
+      <div><div class="rotulo-capa">Área Total</div><div class="valor-capa" id="capaAreaTotal"></div></div>
+      <div><div class="rotulo-capa">Localização</div><a id="capaMapaLink" href="#" target="_blank" rel="noopener" class="valor-capa">—</a></div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpisRel"></div>
+
+  <div class="grade-graficos">
+    <div class="cartao"><h3><span>Área Total por Módulo</span><small>top 15 · hectares</small></h3><canvas id="gModuloRel" height="230"></canvas></div>
+    <div class="cartao"><h3><span>Classificação do Pasto</span><small>distribuição</small></h3><canvas id="gClassifRel" height="230"></canvas></div>
+    <div class="cartao"><h3><span>Ação de Manejo</span><small>nº de pastos</small></h3><canvas id="gManejoRel" height="230"></canvas></div>
+    <div class="cartao"><h3><span>Espécie do Capim</span><small>área total · ha</small></h3><canvas id="gCapimRel" height="230"></canvas></div>
+    <div class="cartao"><h3><span>Tipo de Aguada</span><small>nº de pastos</small></h3><canvas id="gAguadaRel" height="210"></canvas></div>
+    <div class="cartao"><h3><span>Tipo de Cocho</span><small>nº de pastos</small></h3><canvas id="gCochoRel" height="210"></canvas></div>
+  </div>
+
+  <div class="rel-grade">
+    <div class="cartao"><h3><span>Resumo Executivo</span></h3><div id="relResumo" style="line-height:1.8;font-size:13.5px"></div></div>
+    <div class="cartao"><h3><span>Compra Consolidada</span><small>total a comprar por produto</small></h3><div class="envoltorio-tabela" style="border:none"><table id="relCompra"></table></div></div>
+    <div class="cartao"><h3><span>Análise por Módulo</span><small>área útil, UA e taxa de lotação</small></h3><div class="envoltorio-tabela" style="max-height:420px;overflow-y:auto;border:none"><table id="relModulo"></table></div></div>
+    <div class="cartao"><h3><span>Análise por Ação de Manejo</span></h3><div class="envoltorio-tabela" style="border:none"><table id="relManejo"></table></div></div>
+    <div class="cartao"><h3><span>Análise por Classificação do Pasto</span></h3><div class="envoltorio-tabela" style="border:none"><table id="relClassif"></table></div></div>
+    <div class="cartao"><h3><span>Análise por Espécie de Capim</span></h3><div class="envoltorio-tabela" style="max-height:420px;overflow-y:auto;border:none"><table id="relCapim"></table></div></div>
+  </div>
+  <div class="assinatura">
+    <div>Responsável Técnico: <input type="text" id="respTec" value=""></div>
+    <div>Cliente: <input type="text" id="respCliente" value=""></div>
+    <div>Emitido em <span id="dataEmissao"></span> · Go On Agro</div>
+  </div>
+</section>
+
+<!-- ============ VERSÕES SALVAS ============ -->
+<section id="versoes" class="aba">
+  <div class="cartao">
+    <h3><span>Minhas Versões</span><small>guarde um cenário, mude o que quiser e compare depois</small></h3>
+    <p class="dica" style="display:block;margin-bottom:14px">Cada versão guarda uma fotografia completa de tudo (pastos, cliente, mapa, produtos, módulos) no momento em que você salvar — assim dá pra testar um cenário, salvar, mudar de novo, e voltar a qualquer uma delas depois. Como esta ferramenta roda só no seu navegador (sem conta na nuvem), a Biblioteca é o jeito de levar suas versões para outro computador.</p>
+    <div class="barra-acoes">
+      <input type="text" id="nomeVersaoNova" placeholder="Nome da versão (ex.: Antes da adubação de outubro)" style="flex:1;min-width:240px">
+      <button class="btn" onclick="salvarVersaoAtual()">+ Salvar Versão Atual</button>
+      <button class="btn fantasma" onclick="exportarBibliotecaVersoes()">Exportar Biblioteca</button>
+      <label class="btn fantasma upload-label">Importar Biblioteca<input type="file" accept=".json" style="display:none" onchange="importarBibliotecaVersoes(event)"></label>
+    </div>
+    <div id="listaVersoes" style="margin-top:16px"></div>
+  </div>
+</section>
+</main>
+
+<div class="toast" id="toast"></div>

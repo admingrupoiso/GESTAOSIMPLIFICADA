@@ -1,0 +1,16 @@
+{
+  "name": "controle-pastagem-vista-alegre",
+  "private": true,
+  "description": "Ferramenta HTML de Controle de Pastagem (Go On Agro / Consultor Agro 360) — projeto de referência Fazenda Vista Alegre, hoje de uso geral.",
+  "scripts": {
+    "build": "bash build.sh",
+    "test": "npm run build && node tests/smoke-test.js",
+    "test:visual": "npm run build && node tests/visual-check.js"
+  },
+  "dependencies": {
+    "@mapbox/togeojson": "^0.16.2",
+    "jsdom": "^30.0.1",
+    "jszip": "^3.10.2",
+    "xlsx": "^0.18.5"
+  }
+}
