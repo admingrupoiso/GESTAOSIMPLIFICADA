@@ -1255,6 +1255,8 @@ details.cartao[open] summary{margin-bottom:12px;border-bottom:1px solid var(--bo
       <span class="badge-manejo" style="background:#5FAE46">Produtivo 3</span>
       <span class="badge-manejo" style="background:#2B4D1A">Produtivo 4</span>
       <span class="badge-manejo" style="background:#9a9478">Sem classificação</span>
+      <span style="margin-left:10px;color:#F2C744;border-bottom:2px dashed #F2C744;padding-bottom:1px">– – –</span>
+      linha de divisão / medida (passe o mouse para ver o comprimento)
     </div>
     <div class="dica" style="display:block;margin-bottom:8px;font-size:11.5px">
       Rótulo do talhão: <b>nome do módulo</b>, <b>quantidade de animais</b> daquele lote e
@@ -2404,7 +2406,15 @@ function ativarAbaMapa(){
     }
   });
 }
-function estiloTalhao(destacado, nomeModulo){
+const COR_MEDIDA='#F2C744';   // amarelo de régua, igual ao traço do Google Earth
+function estiloTalhao(destacado, nomeModulo, idx){
+  const t = (idx!=null) ? mapaProp.talhoes[idx] : null;
+  // Linha de medida/divisa: tracejado amarelo, fino — é marcação de divisão, não pasto.
+  if(t && t.medida && t.tipo!=='area'){
+    return destacado
+      ? {color:'#FFF2B8',weight:4,dashArray:'6 4',fill:false}
+      : {color:COR_MEDIDA,weight:2.5,dashArray:'6 4',fill:false};
+  }
   const rm = nomeModulo ? resumoModulo(nomeModulo) : null;
   const corBase = (rm && rm.classifPredominante) ? corClassificacao(rm.classifPredominante) : '#9a9478';
   return destacado
@@ -2436,6 +2446,13 @@ function expandirGeometrias(f){
   });
 }
 const TIPOS_TALHAO=['Polygon','MultiPolygon','Point','LineString','MultiLineString'];
+// No Google Earth, a ferramenta de régua salva o desenho com o nome "Medida da linha" /
+// "Medida do caminho". Na prática é com ela que se divide piquete: as linhas amarelas
+// que cortam o pasto são exatamente essas medidas. Antes a ferramenta descartava tudo
+// que tinha esse nome — e a divisão inteira do pasto sumia do mapa. Agora entra como
+// linha, com o comprimento calculado; o que muda é só o traço (tracejado) e o rótulo
+// (metros em vez de animais), porque linha não é lote de pasto.
+function pareceMedida(nome){ return /^medid|^regua|^distanc|^escala/.test(normalizarTxt(nome)); }
 // Separa o que vira talhão do que foi descartado — e por quê. O "porquê" é mostrado na
 // tela depois do upload: arquivo em que falta desenho no mapa era um sumiço silencioso.
 function separarFeatures(gj){
@@ -2449,7 +2466,6 @@ function separarFeatures(gj){
     expandidas.forEach(f=>{
       const nome=(f.properties && (f.properties.name||f.properties.Name)) || '(sem nome)';
       if(!TIPOS_TALHAO.includes(f.geometry.type)){ ignoradas.push({nome, motivo:'tipo '+f.geometry.type}); return; }
-      if(/^medid|^regua|^distanc|^escala/.test(normalizarTxt(nome))){ ignoradas.push({nome, motivo:'régua de medida'}); return; }
       validas.push(f);
     });
   });
@@ -2487,6 +2503,39 @@ function areaGeodesicaHa(coordenadas){
   area = area*R*R/2;
   return Math.abs(area)/10000; // m² -> hectares
 }
+// Comprimento de uma linha em metros (haversine ponto a ponto) — é a "medida" que o
+// Google Earth mostra na régua, recalculada aqui a partir das coordenadas.
+function distanciaMetros(a,b){
+  const R=6371000, rad=Math.PI/180;
+  const dLat=(b[1]-a[1])*rad, dLon=(b[0]-a[0])*rad;
+  const lat1=a[1]*rad, lat2=b[1]*rad;
+  const h=Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+function comprimentoGeodesicoM(coords){
+  if(!coords || coords.length<2) return null;
+  let total=0;
+  for(let i=1;i<coords.length;i++) total+=distanciaMetros(coords[i-1],coords[i]);
+  return total;
+}
+function comprimentoTalhaoM(feature){
+  const g=feature && feature.geometry; if(!g) return null;
+  if(g.type==='LineString') return comprimentoGeodesicoM(g.coordinates);
+  if(g.type==='MultiLineString') return (g.coordinates||[]).reduce((sm,c)=>sm+(comprimentoGeodesicoM(c)||0),0);
+  return null;
+}
+function fmtDist(m){
+  if(m==null || isNaN(m)) return '—';
+  return m>=1000 ? (fmtN(m/1000)+' km') : (Math.round(m).toLocaleString('pt-BR')+' m');
+}
+// Que espécie de desenho é este: área de pasto, linha (cerca/divisa/medida) ou ponto.
+function tipoDoTalhao(feature){
+  const norm=normalizarGeometriaTalhao(feature);
+  const t=norm.geometry && norm.geometry.type;
+  if(t==='Polygon'||t==='MultiPolygon') return 'area';
+  if(t==='LineString'||t==='MultiLineString') return 'linha';
+  return 'ponto';
+}
 // Tenta calcular a área de um talhão: fecha a cerca (se for o caso) e mede o anel externo.
 function areaTalhaoHa(feature){
   const norm=normalizarGeometriaTalhao(feature);
@@ -2502,6 +2551,12 @@ function areaTalhaoHa(feature){
 function rotulosLigados(){ return mapaProp.mostrarRotulos!==false; }
 function rotuloTalhao(idx){
   const nome=nomeModuloDoTalhao(idx) || ('Talhão '+(idx+1));
+  const t=mapaProp.talhoes[idx];
+  // Numa linha de divisão, o dado que interessa é o comprimento dela, não lotação.
+  if(t && t.medida && t.tipo!=='area'){
+    return '<span class="rt-nome">'+escapeHtml(nome)+'</span>'+
+           '<span class="rt-dado">'+escapeHtml(fmtDist(t.comprimentoM))+'</span>';
+  }
   const rm=resumoModulo(nome);
   const animais = rm.qtdAnimais ? (fmtI(rm.qtdAnimais)+' animais') : 'sem animais';
   // Texto curto de propósito: o rótulo precisa caber dentro do piquete desenhado. O
@@ -2539,6 +2594,7 @@ function detalheTalhao(idx){
   let html='<b>'+escapeHtml(nome)+'</b><br>'+fmtI(rm.nPastos)+' pasto(s) · '+fmtN(rm.areaTotal)+' ha total · '+fmtN(rm.areaUtil)+' ha útil';
   if(rm.pctAproveitamento!=null && rm.pctAreaClassificada>0) html+='<br>Aproveitamento do pasto: <b>'+fmtN(rm.pctAproveitamento)+'%</b> (área útil ÷ área total)';
   if(t && t.areaHa!=null) html+='<br>Área medida no mapa: '+fmtN(t.areaHa)+' ha';
+  if(t && t.comprimentoM!=null) html+='<br>Comprimento medido no mapa: <b>'+escapeHtml(fmtDist(t.comprimentoM))+'</b>';
   if(rm.classifPredominante){
     html+='<br>Classificação predominante: <span style="color:'+corClassificacao(rm.classifPredominante)+'">'+escapeHtml(rm.classifPredominante)+'</span> ('+fmtN(rm.pctAreaClassificada)+'% da área classificada)';
   } else {
@@ -2605,10 +2661,18 @@ function renderizarMapa(opcoes){
       norm._idxTalhao=i;
       return norm;
     });
+    // Preenche tipo/comprimento em mapas salvos por versões anteriores (que não tinham
+    // esses campos) — assim a lista e o traço ficam certos sem precisar subir o KMZ de novo.
+    validas.forEach((f,i)=>{
+      const t=mapaProp.talhoes[i]; if(!t) return;
+      if(t.tipo==null) t.tipo=tipoDoTalhao(f);
+      if(t.comprimentoM==null) t.comprimentoM=comprimentoTalhaoM(f);
+      if(t.medida==null) t.medida=pareceMedida(t.nomeOriginal||'');
+    });
     const gj={type:'FeatureCollection', features:paraRenderizar};
     geoLayer=L.geoJSON(gj,{
-      style: (feature)=>estiloTalhao(false, nomeModuloDoTalhao(feature._idxTalhao)),
-      pointToLayer:(f,latlng)=>L.circleMarker(latlng, Object.assign({radius:6}, estiloTalhao(false, nomeModuloDoTalhao(f._idxTalhao)))),
+      style: (feature)=>estiloTalhao(false, nomeModuloDoTalhao(feature._idxTalhao), feature._idxTalhao),
+      pointToLayer:(f,latlng)=>L.circleMarker(latlng, Object.assign({radius:6}, estiloTalhao(false, nomeModuloDoTalhao(f._idxTalhao), f._idxTalhao))),
       onEachFeature:(feature,layer)=>{
         const idx=feature._idxTalhao;
         layer._talhaoIdx=idx;
@@ -2627,11 +2691,18 @@ function renderizarMapa(opcoes){
 // Liga/desliga os rótulos fixos e mantém o texto deles em dia. O rótulo é um tooltip
 // permanente ancorado no centro do talhão — por isso o detalhe completo foi pro
 // quadro do canto (o Leaflet só permite um tooltip por camada).
+// Linha de divisão/medida nunca recebe rótulo fixo — numa fazenda são dezenas, todas
+// com o mesmo nome, e empilhadas escondem o pasto. Isso não depende do zoom, então nem
+// chega a ser criado (o esconde-por-zoom, esse sim, é só CSS).
+function ehLinhaDeDivisao(idx){
+  const t=mapaProp.talhoes[idx];
+  return !!(t && t.medida && t.tipo!=='area');
+}
 function aplicarRotulos(){
   if(!geoLayer) return;
-  const ligados=rotulosLigados();
   geoLayer.eachLayer(layer=>{
     const idx=layer._talhaoIdx; if(idx==null) return;
+    const ligados=rotulosLigados() && !ehLinhaDeDivisao(idx);
     if(ligados){
       const texto=rotuloTalhao(idx);
       const jaTem = layer.getTooltip ? layer.getTooltip() : null;
@@ -2653,6 +2724,9 @@ function talhaoComportaRotulo(layer, larguraRotulo){
   // enche o mapa de texto justamente onde não há animal nem aproveitamento pra mostrar.
   // Elas só ganham rótulo quando têm animais lançados no módulo.
   if(!layer._ehArea){
+    // Ponto (aguada) e linha solta só valem rótulo quando têm animal lançado — o resto
+    // é texto sobre desenho que não é lote. (Linha de medida nem chega aqui: aplicarRotulos
+    // não cria rótulo pra ela.)
     if(idx==null) return false;
     const rm=resumoModulo(nomeModuloDoTalhao(idx));
     return !!(rm && rm.qtdAnimais);
@@ -2690,7 +2764,7 @@ function atualizarTooltipsMapa(){
   if(!geoLayer) return;
   aplicarRotulos();
   geoLayer.eachLayer(layer=>{
-    if(layer._talhaoIdx!=null && layer.setStyle && talhaoSelecionado!==layer._talhaoIdx) layer.setStyle(estiloTalhao(false, nomeModuloDoTalhao(layer._talhaoIdx)));
+    if(layer._talhaoIdx!=null && layer.setStyle && talhaoSelecionado!==layer._talhaoIdx) layer.setStyle(estiloTalhao(false, nomeModuloDoTalhao(layer._talhaoIdx), layer._talhaoIdx));
   });
 }
 function selecionarTalhao(idx){
@@ -2698,7 +2772,7 @@ function selecionarTalhao(idx){
   if(geoLayer){
     geoLayer.eachLayer(layer=>{
       const destacado = layer._talhaoIdx===idx;
-      if(layer.setStyle) layer.setStyle(estiloTalhao(destacado, nomeModuloDoTalhao(layer._talhaoIdx)));
+      if(layer.setStyle) layer.setStyle(estiloTalhao(destacado, nomeModuloDoTalhao(layer._talhaoIdx), layer._talhaoIdx));
       if(destacado){
         if(layer.getBounds){ try{ leafletMap.fitBounds(layer.getBounds(),{padding:[60,60],maxZoom:16}); }catch(e){} }
         else if(layer.getLatLng){ leafletMap.setView(layer.getLatLng(), Math.max(leafletMap.getZoom(),15)); }
@@ -2715,16 +2789,30 @@ function selecionarTalhao(idx){
 function renderTalhoes(){
   const div=document.getElementById('listaTalhoes');
   const cont=document.getElementById('contagemTalhoes');
-  if(cont) cont.textContent = mapaProp.talhoes.length ? (mapaProp.talhoes.length+' talhões') : '';
+  if(cont){
+    const nLinhas=mapaProp.talhoes.filter(t=>t.medida && t.tipo!=='area').length;
+    const nAreas=mapaProp.talhoes.length-nLinhas;
+    cont.textContent = mapaProp.talhoes.length
+      ? (fmtI(nAreas)+' área(s)'+(nLinhas?(' · '+fmtI(nLinhas)+' linha(s) de divisão'):''))
+      : '';
+  }
   if(!div) return;
   if(!mapaProp.talhoes.length){
     div.innerHTML='<div style="color:var(--mudo);font-size:12.5px">Nenhum mapa carregado ainda. Envie um arquivo KMZ ou KML acima.</div>';
     return;
   }
-  div.innerHTML=mapaProp.talhoes.map((t,idx)=>{
+  const ordenados=mapaProp.talhoes
+    .map((t,idx)=>({t,idx}))
+    .sort((a,b)=>{
+      const la=(a.t.medida&&a.t.tipo!=='area')?1:0, lb=(b.t.medida&&b.t.tipo!=='area')?1:0;
+      return la-lb || a.idx-b.idx;   // área antes de linha, resto na ordem do arquivo
+    });
+  div.innerHTML=ordenados.map(({t,idx})=>{
     const rm=resumoModulo(t.nomeModulo);
     const aprov = (rm.pctAproveitamento!=null && rm.pctAreaClassificada>0) ? (' · '+fmtN(rm.pctAproveitamento)+'% aproveit.') : '';
-    const infoAnimais = (rm.qtdAnimais ? (fmtI(rm.qtdAnimais)+' animais · '+fmtN(rm.pesoMedio)+' kg méd. · '+fmtN(rm.ua)+' UA') : (rm.nPastos? 'sem animais lançados' : 'módulo não usado em nenhum pasto ainda')) + aprov;
+    const infoAnimais = (t.medida && t.tipo!=='area')
+      ? ('linha de divisão · '+fmtDist(t.comprimentoM))
+      : ((rm.qtdAnimais ? (fmtI(rm.qtdAnimais)+' animais · '+fmtN(rm.pesoMedio)+' kg méd. · '+fmtN(rm.ua)+' UA') : (rm.nPastos? 'sem animais lançados' : 'módulo não usado em nenhum pasto ainda')) + aprov);
     return `<div class="talhao-item${idx===talhaoSelecionado?' selecionado':''}" data-idx="${idx}">
       <div class="talhao-original">${escapeHtml(t.nomeOriginal)}</div>
       <input type="text" list="listaModulosDatalist" value="${escapeHtml(t.nomeModulo)}" onchange="renomearTalhao(${idx}, this.value)" placeholder="Nome do Módulo">
@@ -2831,7 +2919,8 @@ async function carregarArquivoMapa(ev){
     mapaProp.kmlTexto=kmlText;
     mapaProp.talhoes=validas.map((f,i)=>{
       const nome=(f.properties && (f.properties.name||f.properties.Name)) || ('Talhão '+(i+1));
-      return {id:'t'+i, nomeOriginal:nome, nomeModulo:nome, areaHa:areaTalhaoHa(f)};
+      return {id:'t'+i, nomeOriginal:nome, nomeModulo:nome, areaHa:areaTalhaoHa(f),
+              tipo:tipoDoTalhao(f), comprimentoM:comprimentoTalhaoM(f), medida:pareceMedida(nome)};
     });
     talhaoSelecionado=null;
     mapaProp.vista=null;          // arquivo novo: enquadra a fazenda inteira uma vez
@@ -2845,7 +2934,9 @@ async function carregarArquivoMapa(ev){
     renderizarMapa({enquadrar:true});
     salvarComoAnexo(file);
     atualizarResumoLeituraMapa();
-    let aviso=mapaProp.talhoes.length+' talhão(ões) carregado(s) do mapa.';
+    const nLinhas=mapaProp.talhoes.filter(t=>t.medida && t.tipo!=='area').length;
+    const nAreas=mapaProp.talhoes.length-nLinhas;
+    let aviso=fmtI(nAreas)+' área(s)'+(nLinhas?(' e '+fmtI(nLinhas)+' linha(s) de divisão'):'')+' carregada(s) do mapa.';
     if(ignoradas.length) aviso+=' '+ignoradas.length+' item(ns) do arquivo ficaram de fora — veja a lista abaixo do mapa.';
     toast(aviso, ignoradas.length>0);
   }catch(e){

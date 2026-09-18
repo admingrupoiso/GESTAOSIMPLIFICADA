@@ -116,7 +116,21 @@ async function main() {
   doc.querySelector('nav button[data-aba="mapa"]').click();
   await w.carregarArquivoMapa({ target: { files: [file], value: '' } });
   await esperar(150);
-  checar('KMZ: só o polígono vira talhão (régua de medida é ignorada)', doc.querySelectorAll('#listaTalhoes .talhao-item').length === 1);
+  // "Medida da linha" é o nome que o Google Earth dá ao desenho feito com a régua — e é
+  // com ela que se divide piquete na prática. Descartar por causa do nome fazia a divisão
+  // inteira do pasto sumir do mapa; tem que entrar como linha, com o comprimento medido.
+  checar('KMZ: polígono e linha de medida entram os dois', doc.querySelectorAll('#listaTalhoes .talhao-item').length === 2);
+  // mapaProp é `let` no topo do script: não vira propriedade de window, então se lê pelo
+  // eval da própria janela (escopo léxico global), não por w.mapaProp.
+  const talhoes = w.eval('JSON.parse(JSON.stringify(mapaProp.talhoes))');
+  checar('o polígono entra como área', talhoes[0].tipo === 'area');
+  checar('a "Medida da linha" entra como linha', talhoes[1].tipo === 'linha' && talhoes[1].medida === true);
+  checar('a linha traz o comprimento medido (~1,5 km na diagonal do teste)', talhoes[1].comprimentoM > 1000 && talhoes[1].comprimentoM < 2000);
+  checar('a linha aparece na lista como divisão, não como pasto', /linha de divisão/.test(doc.querySelectorAll('#listaTalhoes .talhao-item')[1].textContent));
+  // Numa fazenda de verdade são dezenas de linhas, todas chamadas "Medida da linha":
+  // rótulo fixo em cada uma vira uma pilha de texto que esconde o pasto.
+  const camadasMapa = w.L.__debug.geoJSONLayers[w.L.__debug.geoJSONLayers.length - 1]._mockLayers;
+  checar('linha de divisão não ganha rótulo fixo no mapa', !camadasMapa[1]._tooltip);
 
   // Rótulo fixo: nome do módulo + animais do lote + % de aproveitamento do pasto.
   // O talhão se chama "Piquete Teste" e ainda não é módulo de nenhum pasto, então

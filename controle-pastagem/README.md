@@ -183,6 +183,17 @@ seguiu se mostrando confiável o tempo todo.
   talhão na tela (com 50+ piquetes viravam uma parede de texto por cima do desenho) e
   linha/ponto solto só é rotulado quando tem animal lançado.
 
+- **v15**: **"Medida da linha" deixou de ser jogada fora.** A v9 decidiu descartar todo
+  desenho cujo nome começasse com "Medida"/"Régua", achando que era régua do Google Earth
+  sobrando no arquivo. Só que é com a régua que se divide piquete: num mapa real
+  (RHOLYSTON CORDEIRO), as linhas amarelas que cortam o pasto são exatamente nove
+  "Medida da linha" — e a ferramenta apagava a divisão inteira, em silêncio. Agora todo
+  desenho entra: polígono vira **área** (com hectares), linha vira **linha de divisão**
+  (com o comprimento calculado por haversine, em metros/km), traçada em amarelo tracejado
+  como no Google Earth. Linha não recebe rótulo fixo — dezenas delas com o mesmo nome
+  empilhariam texto por cima do pasto; o comprimento aparece ao passar o mouse e na lista,
+  que agora separa áreas de linhas e conta as duas coisas em separado.
+
 ## Pendências conhecidas (não implementadas ainda)
 
 - **Multi-fazenda / multi-cliente**: hoje é uma conta = uma fazenda por vez (via
